@@ -4,7 +4,7 @@
 #include <linux/fs.h>
 #include <linux/uaccess.h>
 #include <linux/string.h>
-#define DEVICE_NAME "rickroll"
+#define DEVICE_NAME "Main"
 
 // This is the missing piece:
 MODULE_LICENSE("GPL");
@@ -26,7 +26,7 @@ static struct file_operations fops = {
 
 static int major;
 
-static int __init rickroll_init(void) {
+static int __init Main_init(void) {
 	major = register_chrdev(0,DEVICE_NAME,&fops);
 	printk("Major Number: %d",major);
 	if(major<0){
@@ -37,7 +37,7 @@ static int __init rickroll_init(void) {
     return 0;
 }
 
-static void __exit rickroll_exit(void) {
+static void __exit Main_exit(void) {
 	unregister_chrdev(major,DEVICE_NAME);
     printk(KERN_INFO "Module has been unloaded\n");
 }
@@ -67,5 +67,5 @@ static ssize_t dev_read(struct file* fileptr, char* buffer, size_t len,loff_t *o
 	*offset += messagelen;
 	return errors == 0 ? messagelen : -EFAULT;
 }
-module_init(rickroll_init);
-module_exit(rickroll_exit);
+module_init(Main_init);
+module_exit(Main_exit);
