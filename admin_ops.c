@@ -3,6 +3,7 @@
 #include <linux/seq_file.h>
 #include <linux/uaccess.h>
 #include <linux/jiffies.h>
+#include <linux/smp.h>
 
 /* --- MOCK SECTION: Delete this when gamepad.h is ready --- */
 struct gamepad_stats {
@@ -16,17 +17,25 @@ struct gamepad_stats mock_global_stats = { .buttons_pressed = 42, .packets_recei
 #define GAMEPAD_IOCTL_RESET_STATS 101
 /* --- END MOCK SECTION --- */
 
+unsigned long driver_start_jiffies;
 
 
 static int gamepad_proc_show(struct seq_file *m, void *v) {
-    seq_printf(m, "=== Xbox Driver Admin Dashboard ===\n");
-    seq_printf(m, "Connection: %s\n", mock_global_stats.is_connected ? "OK" : "DISCONNECTED");
-    seq_printf(m, "Button Hits: %lu\n", mock_global_stats.buttons_pressed);
-    seq_printf(m, "Data Packets: %lu\n", mock_global_stats.packets_received);
-	seq_printf(m, "Memory Footprint: %zu bytes\n", sizeof(struct gamepad_stats));
+	int cpu = raw_smp_processor_id();
 	unsigned long uptime_seconds = (jiffies - INITIAL_JIFFIES_VAR) / HZ;
-	seq_printf(m, "Driver Uptime: %lu seconds\n", uptime_seconds);
-    return 0;
+
+    seq_printf(m, "=== Xbox Driver Admin Dashboard ===\n");
+    seq_printf(m, "System Status:     %s\n", mock_global_stats.is_halted ? "LOCKED (E-STOP)" : "OPERATIONAL");
+    seq_printf(m, "Connection:        %s\n", mock_global_stats.is_connected ? "OK" : "DISCONNECTED");
+    seq_printf(m, "-----------------------------------\n");
+    seq_printf(m, "Active CPU Core:   %d\n", cpu);
+    seq_printf(m, "Driver Uptime:     %lu seconds\n", uptime_seconds);
+    seq_printf(m, "Memory Footprint:  %zu bytes\n", sizeof(struct gamepad_stats));
+    seq_printf(m, "-----------------------------------\n");
+    seq_printf(m, "Button Hits:       %lu\n", mock_global_stats.buttons_pressed);
+    seq_printf(m, "Data Packets:      %lu\n", mock_global_stats.packets_received);
+
+	return 0;
 }
 
 static ssize_t gamepad_proc_write(struct file *file, const char __user *ubuf, size_t count, loff_t *ppos) {
@@ -81,6 +90,7 @@ static const struct proc_ops admin_fops = {
 
 int admin_init(void) {
     // This creates /proc/gamepad_stats
+	driver_start_jiffies = jiffies;
     proc_create("gamepad_stats", 0664, NULL, &admin_fops);
     printk(KERN_INFO "Admin Ops: Interface Loaded\n");
     return 0;
