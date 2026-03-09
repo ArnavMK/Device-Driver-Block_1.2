@@ -5,7 +5,7 @@
 #include <linux/jiffies.h>
 #include <linux/smp.h>
 
-#include "gamepad_driver.h"
+#include "gamepad.h"
 
 static unsigned long driver_start_jiffies;
 

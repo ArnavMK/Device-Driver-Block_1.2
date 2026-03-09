@@ -6,7 +6,7 @@
 #include <linux/mutex.h>
 #include <linux/wait.h>
 #include <linux/usb.h>
-#include "gamepadDriver.h"
+#include "gamepad.h"
 
 static int __init gamepadDriver_init(void);
 static void __exit gamepadDriver_exit(void);
@@ -14,12 +14,6 @@ static void __exit gamepadDriver_exit(void);
 static const struct usb_device_id controllerArr[] = {
     { USB_DEVICE(0x045e, 0x02ea) }, 
     { }                             
-};
-struct xboxController {
-    struct usb_device *usbDev;           
-    struct input_dev *inputDev;           
-    unsigned char *buff;     
-    struct urb *interruptURB;               
 };
 
 static struct usb_driver controller_driver = {
@@ -137,12 +131,7 @@ static int controller_probe(struct usb_interface *usbInterface, const struct usb
         endpoint = &interface_desc->endpoint[i].desc;
 
         if (usb_endpoint_xfer_int(endpoint) && usb_endpoint_dir_in(endpoint)) {
-            usb_fill_int_urb(controller->interruptURB, usbDev, usb_rcvintpipe(usbDev, endpoint->bEndpointAddress), 
-                            controller->buff, 64,
-                            controller_irq_callback, 
-                            controller, 
-                            endpoint->bInterval);
-        
+            usb_fill_int_urb(controller->interruptURB, usbDev, usb_rcvintpipe(usbDev, endpoint->bEndpointAddress), controller->buff, 64, controller_irq_callback, controller, endpoint->bInterval);
             break; 
         }
     }
