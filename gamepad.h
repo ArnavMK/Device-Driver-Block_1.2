@@ -35,6 +35,13 @@ struct xboxController {
     struct urb          *interruptURB;
 };
 
+struct gamepad_stats {
+    unsigned long   buttons_pressed;
+    unsigned long   packets_received;
+    int             is_connected;
+    int             is_halted;
+};
+
 // ── Globals (defined in gamepadDriver.c)
 extern struct gamepad_buffer    myDeviceBuffer;
 extern int                      major;
