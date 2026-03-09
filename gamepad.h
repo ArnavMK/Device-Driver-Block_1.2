@@ -10,15 +10,15 @@
 #include <linux/usb.h>
 #include <linux/input.h>
 
-/* ── Device identity ─────────────────────────────────────────── */
+//── Device identity
 #define DEVICE_NAME     "gamepadDriver"
 #define BUFFER_SIZE     64          /* URB / circular-buffer capacity */
 
-/* ── Xbox One controller USB IDs ─────────────────────────────── */
+// ── Xbox One controller USB IDs
 #define XBOX_VENDOR_ID   0x045e
 #define XBOX_PRODUCT_ID  0x02ea
 
-/* ── Circular buffer ─────────────────────────────────────────── */
+// ── Circular buffer
 struct gamepad_buffer {
     unsigned char   data[BUFFER_SIZE];
     int             head;
@@ -27,7 +27,7 @@ struct gamepad_buffer {
     struct mutex    lock;
 };
 
-/* ── Per-device structure ────────────────────────────────────── */
+//── Per-device structure
 struct xboxController {
     struct usb_device   *usbDev;
     struct input_dev    *inputDev;
@@ -35,17 +35,17 @@ struct xboxController {
     struct urb          *interruptURB;
 };
 
-/* ── Globals (defined in gamepadDriver.c) ────────────────────── */
+// ── Globals (defined in gamepadDriver.c)
 extern struct gamepad_buffer    myDeviceBuffer;
 extern int                      major;
 extern const struct file_operations fops;
 
-/* ── USB probe / disconnect ──────────────────────────────────── */
+// ── USB probe / disconnect
 static int  controller_probe(struct usb_interface *usbInterface,
                              const struct usb_device_id *id);
 static void controller_disconnect(struct usb_interface *usbInterface);
 
-/* ── URB interrupt callback ──────────────────────────────────── */
+// ── URB interrupt callback
 static void controller_irq_callback(struct urb *urb);
 
 #endif /* GAMEPAD_DRIVER_H */
