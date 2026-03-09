@@ -8,7 +8,6 @@
 // ---------------------------------------------------------
 // 1. Global Variables & Synchronization Tools
 // ---------------------------------------------------------
-
 static struct gamepad_buffer my_gamepad_buffer; 
 DECLARE_WAIT_QUEUE_HEAD(wq);       // The waiting room for sleeping threads
 DEFINE_MUTEX(gamepad_buffer_lock);        // The lock to protect our buffer

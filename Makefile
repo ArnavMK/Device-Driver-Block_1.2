@@ -1,9 +1,7 @@
-obj-m += main_driver.o
-obj-m += file_ops.o
-obj-m += admin_ops.o
-obj-m += circular_buffer.o
+obj-m := controllerDriver.o
+controllerDriver-y := main_driver.o file_ops.o admin_ops.o circular_buffer.o
 
-all: 
+all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
 
 clean:

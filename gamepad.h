@@ -24,7 +24,6 @@ struct gamepad_buffer {
     int read_pos;
     int write_pos;
     int count;
-    struct mutex lock;
 };
 
 //── Per-device structure
