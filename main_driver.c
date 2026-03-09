@@ -6,14 +6,29 @@
 #include <linux/mutex.h>
 #include <linux/wait.h>
 #include <linux/usb.h>
+<<<<<<< HEAD
 #include "gamepad.h"
+=======
+#include "gamepadDriver.h"
+>>>>>>> b44a676 (9/3/26 attempting do add new controller callback)
 
 static int __init gamepadDriver_init(void);
 static void __exit gamepadDriver_exit(void);
 
 static const struct usb_device_id controllerArr[] = {
+<<<<<<< HEAD
     { USB_DEVICE(XBOX_VENDOR_ID, XBOX_PRODUCT_ID) },
     { }                             
+=======
+    { USB_DEVICE(0x045e, 0x02ea) },
+    { }
+};
+struct xboxController {
+    struct usb_device *usbDev;
+    struct input_dev *inputDev;
+    unsigned char *buff;
+    struct urb *interruptURB;
+>>>>>>> b44a676 (9/3/26 attempting do add new controller callback)
 };
 
 static struct usb_driver controller_driver = {
@@ -23,13 +38,17 @@ static struct usb_driver controller_driver = {
     .id_table = controllerArr,
 };
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> b44a676 (9/3/26 attempting do add new controller callback)
 MODULE_DEVICE_TABLE(usb, controllerArr);
 
 struct gamepad_buffer myDeviceBuffer;
 int major;
 
 static int __init gamepadDriver_init(void) {
+<<<<<<< HEAD
     myDeviceBuffer.read_pos = 0;
     myDeviceBuffer.write_pos = 0;
     myDeviceBuffer.count = 0;
@@ -38,6 +57,17 @@ static int __init gamepadDriver_init(void) {
         printk(KERN_ALERT "Failed to register controller\n");    
         return major;
     }   
+=======
+    mutex_init(&myDeviceBuffer.lock);
+    myDeviceBuffer.head = 0;
+    myDeviceBuffer.tail = 0;
+    myDeviceBuffer.count = 0;
+    major = register_chrdev(0, DEVICE_NAME, &fops);
+    if(major < 0) {
+        printk(KERN_ALERT "Failed to register controller\n");
+        return major;
+    }
+>>>>>>> b44a676 (9/3/26 attempting do add new controller callback)
     int result = usb_register(&controller_driver);
     if (result) {
         unregister_chrdev(major, DEVICE_NAME);
@@ -45,12 +75,18 @@ static int __init gamepadDriver_init(void) {
         return result;
     }
     printk(KERN_INFO "Controller loaded with major number %d\n", major);
+<<<<<<< HEAD
     admin_init(); // Initialize the admin dashboard
+=======
+>>>>>>> b44a676 (9/3/26 attempting do add new controller callback)
     return 0;
 }
 
 static void __exit gamepadDriver_exit(void) {
+<<<<<<< HEAD
     admin_exit(); // Clean up the admin dashboard
+=======
+>>>>>>> b44a676 (9/3/26 attempting do add new controller callback)
     usb_deregister(&controller_driver);
     unregister_chrdev(major, DEVICE_NAME);
     mutex_destroy(&myDeviceBuffer.lock);
@@ -68,7 +104,11 @@ static int controller_probe(struct usb_interface *usbInterface, const struct usb
         printk(KERN_ERR "Could not allocate memory for controller\n");
         return -ENOMEM;
     }
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> b44a676 (9/3/26 attempting do add new controller callback)
     controller->usbDev = usbDev;
     controller->inputDev = input_allocate_device();
     if (!controller->inputDev) {
@@ -105,7 +145,11 @@ static int controller_probe(struct usb_interface *usbInterface, const struct usb
     input_set_capability(controller->inputDev, EV_KEY, BTN_TR);
     input_set_capability(controller->inputDev, EV_KEY, BTN_SELECT);
     input_set_capability(controller->inputDev, EV_KEY, BTN_START);
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> b44a676 (9/3/26 attempting do add new controller callback)
     input_set_abs_params(controller->inputDev, ABS_X,  -32768, 32767, 16, 128);
     input_set_abs_params(controller->inputDev, ABS_Y,  -32768, 32767, 16, 128);
 
@@ -116,7 +160,11 @@ static int controller_probe(struct usb_interface *usbInterface, const struct usb
     input_set_abs_params(controller->inputDev, ABS_RX, -32768, 32767, 16, 128);
     input_set_abs_params(controller->inputDev, ABS_RY, -32768, 32767, 16, 128);
 
+<<<<<<< HEAD
     usb_set_intfdata(usbInterface, controller); 
+=======
+    usb_set_intfdata(usbInterface, controller);
+>>>>>>> b44a676 (9/3/26 attempting do add new controller callback)
     error = input_register_device(controller->inputDev);
 
     if (error) {
@@ -133,8 +181,18 @@ static int controller_probe(struct usb_interface *usbInterface, const struct usb
         endpoint = &interface_desc->endpoint[i].desc;
 
         if (usb_endpoint_xfer_int(endpoint) && usb_endpoint_dir_in(endpoint)) {
+<<<<<<< HEAD
             usb_fill_int_urb(controller->interruptURB, usbDev, usb_rcvintpipe(usbDev, endpoint->bEndpointAddress), controller->buff, 64, controller_irq_callback, controller, endpoint->bInterval);
             break; 
+=======
+            usb_fill_int_urb(controller->interruptURB, usbDev, usb_rcvintpipe(usbDev, endpoint->bEndpointAddress),
+                            controller->buff, 64,
+                            controller_irq_callback,
+                            controller,
+                            endpoint->bInterval);
+
+            break;
+>>>>>>> b44a676 (9/3/26 attempting do add new controller callback)
         }
     }
     int urb_submit_result = usb_submit_urb(controller->interruptURB, GFP_KERNEL);
@@ -142,7 +200,11 @@ static int controller_probe(struct usb_interface *usbInterface, const struct usb
         printk(KERN_ERR "Could not submit URB for controller\n");
         input_unregister_device(controller->inputDev);
         kfree(controller->buff);
+<<<<<<< HEAD
         usb_free_urb(controller->interruptURB);        
+=======
+        usb_free_urb(controller->interruptURB);
+>>>>>>> b44a676 (9/3/26 attempting do add new controller callback)
         kfree(controller);
         return urb_submit_result;
     }
@@ -155,14 +217,76 @@ static void controller_disconnect(struct usb_interface *usbInterface) {
     struct xboxController *controller = usb_get_intfdata(usbInterface);
     usb_set_intfdata(usbInterface, NULL);
     if (controller) {
+<<<<<<< HEAD
         usb_kill_urb(controller->interruptURB);      
         usb_free_urb(controller->interruptURB);  
         kfree(controller->buff);                
         input_unregister_device(controller->inputDev); 
         kfree(controller);                       
+=======
+        usb_kill_urb(controller->interruptURB);
+        usb_free_urb(controller->interruptURB);
+        kfree(controller->buff);
+        input_unregister_device(controller->inputDev);
+        kfree(controller);
+>>>>>>> b44a676 (9/3/26 attempting do add new controller callback)
     }
     printk(KERN_INFO "Controller Disconnected.\n");
 }
 
+<<<<<<< HEAD
+=======
+static void controller_irq_callback(struct urb *urb) {
+    struct xboxController *controller = urb->context;
+    unsigned char *buff = controller->buff;
+    int status = urb->status;
+
+
+    if (status) {
+        if (status == -ENOENT || status == -ECONNRESET || status == -ESHUTDOWN) {
+            return;  // URB was killed, don't resubmit
+        }
+        printk(KERN_ERR "URB error: %d\n", status);
+        goto resubmit;
+    }
+
+
+    input_report_key(controller->inputDev, BTN_A,      buff[2] & 0x01);
+    input_report_key(controller->inputDev, BTN_B,      buff[2] & 0x02);
+    input_report_key(controller->inputDev, BTN_X,      buff[2] & 0x08);
+    input_report_key(controller->inputDev, BTN_Y,      buff[2] & 0x10);
+    input_report_key(controller->inputDev, BTN_TL,     buff[2] & 0x40);
+    input_report_key(controller->inputDev, BTN_TR,     buff[2] & 0x80);
+    input_report_key(controller->inputDev, BTN_SELECT, buff[2] & 0x04);
+    input_report_key(controller->inputDev, BTN_START,  buff[2] & 0x20);
+
+
+    input_report_abs(controller->inputDev, ABS_Z,  buff[4]);
+    input_report_abs(controller->inputDev, ABS_RZ, buff[5]);
+
+
+    input_report_abs(controller->inputDev, ABS_X,
+                     (s16)(buff[6] | (buff[7] << 8)));
+    input_report_abs(controller->inputDev, ABS_Y,
+                     -(s16)(buff[8] | (buff[9] << 8)));  // invert Y axis
+
+
+    input_report_abs(controller->inputDev, ABS_RX,
+                     (s16)(buff[10] | (buff[11] << 8)));
+    input_report_abs(controller->inputDev, ABS_RY,
+                     -(s16)(buff[12] | (buff[13] << 8)));  // invert Y axis
+
+    // Sync all events to input
+    input_sync(controller->inputDev);
+
+resubmit:
+    // Resubmit URB to keep receiving reports
+    status = usb_submit_urb(urb, GFP_ATOMIC);  // GFP_ATOMIC since we're in interrupt context
+    if (status) {
+        printk(KERN_ERR "Failed to resubmit URB: %d\n", status);
+    }
+}
+
+>>>>>>> b44a676 (9/3/26 attempting do add new controller callback)
 module_init(gamepadDriver_init);
 module_exit(gamepadDriver_exit);
