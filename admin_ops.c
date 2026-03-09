@@ -4,19 +4,6 @@
 #include <linux/uaccess.h>
 #include <linux/jiffies.h>
 #include <linux/smp.h>
-
-/* --- MOCK SECTION: Delete this when gamepad.h is ready --- */
-struct gamepad_stats {
-    unsigned long buttons_pressed;
-    unsigned long packets_received;
-    int is_connected;
-};
-
-// Create a local "fake" version of the stats to test with
-struct gamepad_stats mock_global_stats = { .buttons_pressed = 42, .packets_received = 100, .is_connected = 1 };
-#define GAMEPAD_IOCTL_RESET_STATS 101
-/* --- END MOCK SECTION --- */
-
 unsigned long driver_start_jiffies;
 
 
@@ -52,18 +39,16 @@ static ssize_t gamepad_proc_write(struct file *file, const char __user *ubuf, si
     /* 3. Null Terminate: Ensure the string is safe for C logic */
     buf[count] = '\0';
 
-    /* 4. Command Logic: Multi-functional control */
-
     // Command '0': Simulate Hardware Disconnect
     if (buf[0] == '0') {
-        mock_global_stats.is_connected = 0;
+        global_stats.is_connected = 0;
         printk(KERN_WARNING "Admin Ops: Manual DISCONNECT triggered via /proc\n");
     }
     // Command '1': Reset Stats AND Reconnect
     else if (buf[0] == '1') {
-        mock_global_stats.buttons_pressed = 0;
-        mock_global_stats.packets_received = 0;
-        mock_global_stats.is_connected = 1;
+        global_stats.buttons_pressed = 0;
+        global_stats.packets_received = 0;
+        global_stats.is_connected = 1;
         printk(KERN_INFO "Admin Ops: Stats RESET and RECONNECT triggered via /proc\n");
     }
     // Command '9': Emergency Stop (Mock example)
@@ -76,10 +61,9 @@ static ssize_t gamepad_proc_write(struct file *file, const char __user *ubuf, si
 }
 
 static int gamepad_proc_open(struct inode *inode, struct file *file) {
-    return single_open(file, gamepad_proc_show, NULL);
+   return single_open(file, gamepad_proc_show, NULL);
 }
 
-// These are the standard "hooks" for a /proc file
 static const struct proc_ops admin_fops = {
     .proc_open    = gamepad_proc_open,
     .proc_read    = seq_read,
@@ -89,7 +73,6 @@ static const struct proc_ops admin_fops = {
 };
 
 int admin_init(void) {
-    // This creates /proc/gamepad_stats
 	driver_start_jiffies = jiffies;
     proc_create("gamepad_stats", 0664, NULL, &admin_fops);
     printk(KERN_INFO "Admin Ops: Interface Loaded\n");
