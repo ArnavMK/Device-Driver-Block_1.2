@@ -9,6 +9,7 @@
 #include <linux/mutex.h>
 #include <linux/usb.h>
 #include <linux/input.h>
+#include <linux/ioctl.h>
 
 //── Device identity
 #define DEVICE_NAME "gamepadDriver"
@@ -41,6 +42,12 @@ struct gamepad_stats {
     int is_halted;
 };
 
+// ioctl command definitions
+#define GAMEPAD_MAGIC      'G'
+#define GAMEPAD_GET_STATS  _IOR(GAMEPAD_MAGIC, 1, struct gamepad_stats)
+#define GAMEPAD_RESET      _IO (GAMEPAD_MAGIC, 2)
+#define GAMEPAD_ESTOP      _IO (GAMEPAD_MAGIC, 3)
+
 //Buffer Commands
 void gamepad_buffer_init(struct gamepad_buffer *buf);
 int gamepad_buffer_is_empty(struct gamepad_buffer *buf);
@@ -50,8 +57,17 @@ char gamepad_buffer_pop(struct gamepad_buffer *buf);
 
 // ── Globals (defined in gamepadDriver.c)
 extern struct gamepad_buffer myDeviceBuffer;
+extern struct gamepad_stats  myDeviceStats;
 extern int major;
 extern const struct file_operations fops;
+
+
+// ioctl handler
+long gamepad_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+
+// Admin proc interface
+int  admin_init(void);
+void admin_exit(void);
 
 // ── USB probe / disconnect
 static int  controller_probe(struct usb_interface *usbInterface, const struct usb_device_id *id);
