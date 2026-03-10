@@ -43,6 +43,7 @@ static int __init gamepadDriver_init(void) {
         printk(KERN_ALERT "Failed to register USB driver\n");
         return result;
     }
+    mutex_init(&myDeviceBuffer.lock);
     printk(KERN_INFO "Controller loaded with major number %d\n", major);
     admin_init(); // Initialize the admin dashboard
     return 0;
