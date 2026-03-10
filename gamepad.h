@@ -61,8 +61,7 @@ char gamepad_buffer_pop(struct gamepad_buffer *buf);
 extern struct gamepad_buffer myDeviceBuffer;
 extern struct gamepad_stats  myDeviceStats;
 extern int major;
-extern const struct file_operations fops;
-
+extern struct file_operations fops;
 
 // ioctl handler
 long gamepad_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
@@ -70,12 +69,5 @@ long gamepad_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 // Admin proc interface
 int  admin_init(void);
 void admin_exit(void);
-
-// ── USB probe / disconnect
-static int  controller_probe(struct usb_interface *usbInterface, const struct usb_device_id *id);
-static void controller_disconnect(struct usb_interface *usbInterface);
-
-// ── URB interrupt callback
-static void controller_irq_callback(struct urb *urb);
 
 #endif /* GAMEPAD_DRIVER_H */

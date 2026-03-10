@@ -3,7 +3,7 @@
 #include <linux/kernel.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
-#include <linux/mutex.h>
+#include <linux/spinlock.h>
 #include <linux/wait.h>
 #include <linux/usb.h>
 #include "gamepad.h"
@@ -26,12 +26,14 @@ static struct usb_driver controller_driver = {
 MODULE_DEVICE_TABLE(usb, controllerArr);
 
 struct gamepad_buffer myDeviceBuffer;
+struct gamepad_stats  myDeviceStats;
 int major;
 
 static int __init gamepadDriver_init(void) {
     myDeviceBuffer.read_pos = 0;
     myDeviceBuffer.write_pos = 0;
     myDeviceBuffer.count = 0;
+	spin_lock_init(&myDeviceBuffer.lock);
     major = register_chrdev(0, DEVICE_NAME, &fops);
     if(major < 0) {
         printk(KERN_ALERT "Failed to register controller\n");    
@@ -43,7 +45,6 @@ static int __init gamepadDriver_init(void) {
         printk(KERN_ALERT "Failed to register USB driver\n");
         return result;
     }
-    mutex_init(&myDeviceBuffer.lock);
     printk(KERN_INFO "Controller loaded with major number %d\n", major);
     admin_init(); // Initialize the admin dashboard
     return 0;
@@ -53,7 +54,6 @@ static void __exit gamepadDriver_exit(void) {
     admin_exit(); // Clean up the admin dashboard
     usb_deregister(&controller_driver);
     unregister_chrdev(major, DEVICE_NAME);
-    mutex_destroy(&myDeviceBuffer.lock);
     printk(KERN_INFO "Controller unloaded\n");
 }
 

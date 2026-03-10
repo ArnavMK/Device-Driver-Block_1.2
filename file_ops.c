@@ -5,9 +5,12 @@
 #include <linux/mutex.h>   
 #include "gamepad.h"
 
-// ---------------------------------------------------------
 // 1. Global Variables & Synchronization Tools
-// ---------------------------------------------------------
+
+static int     dev_open(struct inode *inodep, struct file *filep);
+static int     dev_release(struct inode *inodep, struct file *filep);
+static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset);
+static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset);
 
 struct file_operations fops = {
     .owner = THIS_MODULE,
@@ -15,13 +18,13 @@ struct file_operations fops = {
     .release = dev_release,
     .read = dev_read,
     .write = dev_write,
-    .unlocked_ioctl = dev_ioctl,
+    .unlocked_ioctl = gamepad_ioctl,
 };
 
 extern wait_queue_head_t wq;   // The waiting room for sleeping threads
-// ---------------------------------------------------------
+
 // 2. Open & Release Functions
-// ---------------------------------------------------------
+
 
 int dev_open(struct inode *inodep, struct file *filep) {
     printk(KERN_INFO "Gamepad: Device opened\n");
@@ -35,10 +38,7 @@ int dev_release(struct inode *inodep, struct file *filep) {
     return 0;
 }
 
-// ---------------------------------------------------------
 // 3. The READ Function (Game asks for input)
-// ---------------------------------------------------------
-
 ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset) {
     char data_to_send;
 
@@ -76,10 +76,7 @@ ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset) {
     return 1; // We successfully read 1 byte
 }
 
-// ---------------------------------------------------------
 // 4. The WRITE Function (Hardware sends input)
-// ---------------------------------------------------------
-
 ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset) {
     char data_received;
 
@@ -94,7 +91,7 @@ ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *of
     }
 
     // STEP 3: Grab the lock! We are about to modify the buffer.
-    if (mutex_lock_interruptible(&gamepad_buffer_lock)) {
+    if (spin_lock_bh(&myDeviceBuffer.lock)) {
         return -ERESTARTSYS;
     }
 
@@ -105,7 +102,7 @@ ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *of
     }
 
     // STEP 5: Unlock the buffer
-    mutex_unlock(&gamepad_buffer_lock);
+    spin_unlock_bh(&myDeviceBuffer.lock);
 
     // STEP 6: Wake up any readers (games) waiting for new button presses
     wake_up_interruptible(&wq);
