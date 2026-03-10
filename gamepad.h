@@ -10,6 +10,7 @@
 #include <linux/usb.h>
 #include <linux/input.h>
 #include <linux/ioctl.h>
+#include <linux/spinlock.h>
 
 //── Device identity
 #define DEVICE_NAME "gamepadDriver"
@@ -25,7 +26,7 @@ struct gamepad_buffer {
     int read_pos;
     int write_pos;
     int count;
-    struct spinlock_t lock; // To protect buffer access
+    spinlock_t lock;
 };
 
 //── Per-device structure
@@ -70,12 +71,5 @@ long gamepad_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 // Admin proc interface
 int  admin_init(void);
 void admin_exit(void);
-
-// ── USB probe / disconnect
-int  controller_probe(struct usb_interface *usbInterface, const struct usb_device_id *id);
-void controller_disconnect(struct usb_interface *usbInterface);
-
-// ── URB interrupt callback
-void controller_irq_callback(struct urb *urb);
 
 #endif /* GAMEPAD_DRIVER_H */
