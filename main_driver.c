@@ -12,7 +12,7 @@ static int __init gamepadDriver_init(void);
 static void __exit gamepadDriver_exit(void);
 
 static const struct usb_device_id controllerArr[] = {
-    { USB_DEVICE(0x045e, 0x02ea) }, 
+    { USB_DEVICE(XBOX_VENDOR_ID, XBOX_PRODUCT_ID) },
     { }                             
 };
 
@@ -23,15 +23,15 @@ static struct usb_driver controller_driver = {
     .id_table = controllerArr,
 };
 
+
 MODULE_DEVICE_TABLE(usb, controllerArr);
 
 struct gamepad_buffer myDeviceBuffer;
 int major;
 
 static int __init gamepadDriver_init(void) {
-    mutex_init(&myDeviceBuffer.lock);
-    myDeviceBuffer.head = 0;
-    myDeviceBuffer.tail = 0;
+    myDeviceBuffer.read_pos = 0;
+    myDeviceBuffer.write_pos = 0;
     myDeviceBuffer.count = 0;
     major = register_chrdev(0, DEVICE_NAME, &fops);
     if(major < 0) {
@@ -45,10 +45,12 @@ static int __init gamepadDriver_init(void) {
         return result;
     }
     printk(KERN_INFO "Controller loaded with major number %d\n", major);
+    admin_init(); // Initialize the admin dashboard
     return 0;
 }
 
 static void __exit gamepadDriver_exit(void) {
+    admin_exit(); // Clean up the admin dashboard
     usb_deregister(&controller_driver);
     unregister_chrdev(major, DEVICE_NAME);
     mutex_destroy(&myDeviceBuffer.lock);

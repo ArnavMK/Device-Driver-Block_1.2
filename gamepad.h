@@ -41,6 +41,13 @@ struct gamepad_stats {
     int is_halted;
 };
 
+//Buffer Commands
+void gamepad_buffer_init(struct gamepad_buffer *buf);
+int gamepad_buffer_is_empty(struct gamepad_buffer *buf);
+int gamepad_buffer_is_full(struct gamepad_buffer *buf);
+void gamepad_buffer_push(struct gamepad_buffer *buf, char new_data);
+char gamepad_buffer_pop(struct gamepad_buffer *buf);
+
 // ── Globals (defined in gamepadDriver.c)
 extern struct gamepad_buffer myDeviceBuffer;
 extern int major;

@@ -9,6 +9,16 @@
 // 1. Global Variables & Synchronization Tools
 // ---------------------------------------------------------
 static struct gamepad_buffer my_gamepad_buffer; 
+
+static struct file_operations fops = {
+    .owner = THIS_MODULE,
+    .open = dev_open,
+    .release = dev_release,
+    .read = dev_read,
+    .write = dev_write,
+    .unlocked_ioctl = dev_ioctl,
+};
+
 DECLARE_WAIT_QUEUE_HEAD(wq);       // The waiting room for sleeping threads
 DEFINE_MUTEX(gamepad_buffer_lock);        // The lock to protect our buffer
 
