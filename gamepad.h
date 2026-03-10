@@ -72,4 +72,8 @@ long gamepad_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 int  admin_init(void);
 void admin_exit(void);
 
+int controller_probe(struct usb_interface *usbInterface, const struct usb_device_id *id);
+void controller_disconnect(struct usb_interface *usbInterface);
+void controller_irq_callback(struct urb *urb);
+
 #endif /* GAMEPAD_DRIVER_H */

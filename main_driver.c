@@ -1,3 +1,5 @@
+#include "gamepad.h"
+
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -6,7 +8,6 @@
 #include <linux/spinlock.h>
 #include <linux/wait.h>
 #include <linux/usb.h>
-#include "gamepad.h"
 
 static int __init gamepadDriver_init(void);
 static void __exit gamepadDriver_exit(void);
@@ -57,7 +58,7 @@ static void __exit gamepadDriver_exit(void) {
     printk(KERN_INFO "Controller unloaded\n");
 }
 
-static int controller_probe(struct usb_interface *usbInterface, const struct usb_device_id *id) {
+int controller_probe(struct usb_interface *usbInterface, const struct usb_device_id *id) {
     struct usb_device *usbDev = interface_to_usbdev(usbInterface);
     struct xboxController *controller;
     struct usb_host_interface *interface_desc;
@@ -151,7 +152,7 @@ static int controller_probe(struct usb_interface *usbInterface, const struct usb
     return 0;
 }
 
-static void controller_disconnect(struct usb_interface *usbInterface) {
+void controller_disconnect(struct usb_interface *usbInterface) {
     struct xboxController *controller = usb_get_intfdata(usbInterface);
     usb_set_intfdata(usbInterface, NULL);
     if (controller) {
@@ -164,7 +165,7 @@ static void controller_disconnect(struct usb_interface *usbInterface) {
     printk(KERN_INFO "Controller Disconnected.\n");
 }
 
-static void controller_irq_callback(struct urb *urb) {
+void controller_irq_callback(struct urb *urb) {
     struct xboxController *controller = urb->context;
     unsigned char *buff = controller->buff;
     int status = urb->status;
