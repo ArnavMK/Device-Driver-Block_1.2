@@ -45,6 +45,7 @@ static int __init gamepadDriver_init(void) {
         printk(KERN_ALERT "Failed to register USB driver\n");
         return result;
     }
+    spin_lock_init(&myDeviceBuffer.lock);
     printk(KERN_INFO "Controller loaded with major number %d\n", major);
     admin_init(); // Initialize the admin dashboard
     return 0;
@@ -54,6 +55,7 @@ static void __exit gamepadDriver_exit(void) {
     admin_exit(); // Clean up the admin dashboard
     usb_deregister(&controller_driver);
     unregister_chrdev(major, DEVICE_NAME);
+    spin_lock_destroy(&myDeviceBuffer.lock);
     printk(KERN_INFO "Controller unloaded\n");
 }
 
