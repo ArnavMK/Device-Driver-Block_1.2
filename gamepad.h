@@ -26,7 +26,7 @@ struct gamepad_buffer {
     int read_pos;
     int write_pos;
     int count;
-    spinlock_t lock;
+    spinlock_t lock; // To protect buffer access
 };
 
 //── Per-device structure
@@ -43,7 +43,7 @@ struct gamepad_stats {
     int is_connected;
     int is_halted;
 };
-DECLARE_WAIT_QUEUE_HEAD(wq);  
+extern wait_queue_head_t wq; 
 
 // ioctl command definitions
 #define GAMEPAD_MAGIC      'G'

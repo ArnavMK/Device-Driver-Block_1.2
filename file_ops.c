@@ -21,7 +21,7 @@ struct file_operations fops = {
     .unlocked_ioctl = gamepad_ioctl,
 };
 
-extern wait_queue_head_t wq;   // The waiting room for sleeping threads
+DECLARE_WAIT_QUEUE_HEAD(wq);   // The waiting room for sleeping threads
 
 // 2. Open & Release Functions
 
@@ -49,13 +49,11 @@ ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset) {
     }
 
     // STEP 2: Grab the lock! We are about to touch the shared buffer.
-    if (spin_lock_interruptible(&myDeviceBuffer.lock)) {
-        return -ERESTARTSYS; 
-    }
+    spin_lock_bh(&myDeviceBuffer.lock);
 
     // Double check it's still not empty (another thread might have grabbed the data first!)
     if (gamepad_buffer_is_empty(&myDeviceBuffer)) {
-        spin_unlock(&myDeviceBuffer.lock);
+        spin_unlock_bh(&myDeviceBuffer.lock);
         return 0; 
     }
 
@@ -63,7 +61,7 @@ ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset) {
     data_to_send = gamepad_buffer_pop(&myDeviceBuffer);
 
     // STEP 4: We are done with the buffer, unlock it for others.
-    spin_unlock(&myDeviceBuffer.lock);
+    spin_unlock_bh(&myDeviceBuffer.lock);
 
     // STEP 5: Send the data safely to the User Space App
     if (copy_to_user(buffer, &data_to_send, 1) != 0) {
@@ -91,9 +89,7 @@ ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *of
     }
 
     // STEP 3: Grab the lock! We are about to modify the buffer.
-    if (spin_lock_bh(&myDeviceBuffer.lock)) {
-        return -ERESTARTSYS;
-    }
+    spin_lock_bh(&myDeviceBuffer.lock);
 
     // STEP 4: Push the data using your helper
     // We only push if space exists (protecting against race conditions)
