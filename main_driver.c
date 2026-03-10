@@ -9,6 +9,11 @@
 #include <linux/wait.h>
 #include <linux/usb.h>
 
+MODULE_LICENSE("GPL"); 
+MODULE_AUTHOR("Mark,Damien,Arnav,Jerry");
+MODULE_DESCRIPTION("Controller device driver USB");
+MODULE_VERSION("1.0");
+
 static int __init gamepadDriver_init(void);
 static void __exit gamepadDriver_exit(void);
 
