@@ -18,7 +18,7 @@
 
 // ── Xbox One controller USB IDs
 #define XBOX_VENDOR_ID 0x045e
-#define XBOX_PRODUCT_ID 0x02ea
+#define XBOX_PRODUCT_ID 0x0b12
 
 // ── Circular buffer
 struct gamepad_buffer {

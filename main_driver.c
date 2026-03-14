@@ -19,11 +19,11 @@ MODULE_VERSION("1.0");
 static int __init gamepadDriver_init(void);
 static void __exit gamepadDriver_exit(void);
 
+extern struct file_operations fops;
+
 static const struct usb_device_id controllerArr[] = {
     { USB_DEVICE(XBOX_VENDOR_ID, XBOX_PRODUCT_ID) },
-    { USB_DEVICE_INTERFACE_NUMBER(XBOX_VENDOR_ID, XBOX_PRODUCT_ID, 0) },
-    { USB_VENDOR_AND_INTERFACE_INFO(XBOX_VENDOR_ID, 0xff, 0x47, 0xd0) },
-    { }
+    {} 
 };
 
 static struct usb_driver controller_driver = {
@@ -42,6 +42,7 @@ int major;
 static int __init gamepadDriver_init(void)
 {
     int result;
+    int adminResult;
 
     myDeviceBuffer.read_pos  = 0;
     myDeviceBuffer.write_pos = 0;
@@ -54,6 +55,10 @@ static int __init gamepadDriver_init(void)
         return major;
     }
 
+    printk(KERN_INFO "About to call admin_init\n");
+    adminResult = admin_init();
+    printk(KERN_INFO "admin_init returned %d\n", adminResult);
+    
     result = usb_register(&controller_driver);
     if (result) {
         unregister_chrdev(major, DEVICE_NAME);
@@ -61,12 +66,14 @@ static int __init gamepadDriver_init(void)
         return result;
     }
 
+
     printk(KERN_INFO "Controller loaded with major number %d\n", major);
     return 0;
 }
 
 static void __exit gamepadDriver_exit(void)
 {
+    admin_exit(); // Clean up the admin module (proc interface)
     usb_deregister(&controller_driver);
     unregister_chrdev(major, DEVICE_NAME);
     printk(KERN_INFO "Controller unloaded\n");
@@ -126,6 +133,8 @@ int controller_probe(struct usb_interface *usbInterface, const struct usb_device
     controller->inputDev->id.product = XBOX_PRODUCT_ID;
     controller->inputDev->id.version = 0x0100;
 
+    usb_set_intfdata(usbInterface, controller);
+
     /* Buttons */
     input_set_capability(controller->inputDev, EV_KEY, BTN_A);
     input_set_capability(controller->inputDev, EV_KEY, BTN_B);
@@ -153,8 +162,6 @@ int controller_probe(struct usb_interface *usbInterface, const struct usb_device
     /* Right stick */
     input_set_abs_params(controller->inputDev, ABS_RX, -32768, 32767, 16, 128);
     input_set_abs_params(controller->inputDev, ABS_RY, -32768, 32767, 16, 128);
-
-    usb_set_intfdata(usbInterface, controller);
 
     error = input_register_device(controller->inputDev);
     if (error) {

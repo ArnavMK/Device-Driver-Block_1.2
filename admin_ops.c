@@ -13,6 +13,7 @@ static int gamepad_proc_show(struct seq_file *m, void *v)
 {
     struct file *dev_file;
     struct gamepad_stats stats;
+    unsigned long uptime_sec; 
 
     dev_file = filp_open("/dev/gamepad", O_RDONLY, 0);
     if (IS_ERR(dev_file)) {
@@ -26,11 +27,13 @@ static int gamepad_proc_show(struct seq_file *m, void *v)
         return 0;
     }
 
-    dev_file->f_op->unlocked_ioctl(dev_file, GAMEPAD_GET_STATS,
-                                   (unsigned long)&stats);
+    if (dev_file->f_op && dev_file->f_op->unlocked_ioctl) {
+        mm_segment_t old_fs = get_fs();   
+        dev_file->f_op->unlocked_ioctl(dev_file, GAMEPAD_GET_STATS, (unsigned long)&stats);
+    }
     filp_close(dev_file, NULL);
 
-    unsigned long uptime_sec = (jiffies - driver_start_jiffies) / HZ;
+    uptime_sec = (jiffies - driver_start_jiffies) / HZ;
 
     seq_printf(m, "=== Xbox Driver Admin Dashboard ===\n");
     seq_printf(m, "Status:            %s\n", stats.is_halted    ? "LOCKED (E-STOP)" : "OPERATIONAL");
