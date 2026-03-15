@@ -55,10 +55,8 @@ static int __init gamepadDriver_init(void)
         return major;
     }
 
-    printk(KERN_INFO "About to call admin_init\n");
     adminResult = admin_init();
-    printk(KERN_INFO "admin_init returned %d\n", adminResult);
-    
+
     result = usb_register(&controller_driver);
     if (result) {
         unregister_chrdev(major, DEVICE_NAME);
@@ -89,8 +87,9 @@ int controller_probe(struct usb_interface *usbInterface, const struct usb_device
     int i;
     int found_endpoint = 0;
     int urb_submit_result;
-    printk(KERN_INFO "Controller probe called for device %04x:%04x\n",
-           usbDev->descriptor.idVendor, usbDev->descriptor.idProduct);
+    u8 *gip_buf;                          
+    static const u8 gip_pkt[] = { 0x05, 0x20, 0x00, 0x01, 0x00 }; 
+    
     if (usbInterface->cur_altsetting->desc.bInterfaceNumber != 0) {
         return -ENODEV;
     }
@@ -212,6 +211,16 @@ int controller_probe(struct usb_interface *usbInterface, const struct usb_device
         return urb_submit_result;
     }
 
+    gip_buf = kmemdup(gip_pkt, sizeof(gip_pkt), GFP_KERNEL);
+    if (gip_buf) {
+        usb_interrupt_msg(usbDev,
+            usb_sndintpipe(usbDev, 0x02),
+            gip_buf, sizeof(gip_pkt),
+            NULL, 1000);
+        kfree(gip_buf);
+    }
+
+    myDeviceStats.is_connected = 1;
     printk(KERN_INFO "Controller Connected.\n");
     return 0;
 }
@@ -229,7 +238,7 @@ void controller_disconnect(struct usb_interface *usbInterface)
         input_unregister_device(controller->inputDev);
         kfree(controller);
     }
-
+    myDeviceStats.is_connected = 0;
     printk(KERN_INFO "Controller Disconnected.\n");
 }
 
@@ -240,46 +249,58 @@ void controller_irq_callback(struct urb *urb)
     int                    status     = urb->status;
 
     if (status) {
-        /* URB was intentionally killed — do not resubmit */
         if (status == -ENOENT || status == -ECONNRESET || status == -ESHUTDOWN)
             return;
         printk(KERN_ERR "URB error: %d\n", status);
         goto resubmit;
     }
 
-    /* Buttons (byte 2) */
-    input_report_key(controller->inputDev, BTN_A,      buff[2] & 0x01);
-    input_report_key(controller->inputDev, BTN_B,      buff[2] & 0x02);
-    input_report_key(controller->inputDev, BTN_X,      buff[2] & 0x08);
-    input_report_key(controller->inputDev, BTN_Y,      buff[2] & 0x10);
-    input_report_key(controller->inputDev, BTN_TL,     buff[2] & 0x40);
-    input_report_key(controller->inputDev, BTN_TR,     buff[2] & 0x80);
-    input_report_key(controller->inputDev, BTN_SELECT, buff[2] & 0x04);
-    input_report_key(controller->inputDev, BTN_START,  buff[2] & 0x20);
+    /* Only process input packets */
+    if (buff[0] != 0x20)
+        goto resubmit;
 
-    /* D-pad (byte 1) */
-    input_report_key(controller->inputDev, BTN_DPAD_UP,    buff[1] & 0x01);
-    input_report_key(controller->inputDev, BTN_DPAD_DOWN,  buff[1] & 0x02);
-    input_report_key(controller->inputDev, BTN_DPAD_LEFT,  buff[1] & 0x04);
-    input_report_key(controller->inputDev, BTN_DPAD_RIGHT, buff[1] & 0x08);
+    
+    /* D-pad and shoulder buttons (buff[4]) */
+    input_report_key(controller->inputDev, BTN_DPAD_UP, buff[4] & 0x01);
+    input_report_key(controller->inputDev, BTN_DPAD_DOWN, buff[4] & 0x02);
+    input_report_key(controller->inputDev, BTN_DPAD_LEFT, buff[4] & 0x04);
+    input_report_key(controller->inputDev, BTN_DPAD_RIGHT, buff[4] & 0x08);
+    input_report_key(controller->inputDev, BTN_START,buff[4] & 0x10);
+    input_report_key(controller->inputDev, BTN_SELECT, buff[4] & 0x20);
+    input_report_key(controller->inputDev, BTN_TL, buff[4] & 0x40);
+    input_report_key(controller->inputDev, BTN_TR, buff[4] & 0x80);
 
-    /* Triggers (bytes 4–5) */
-    input_report_abs(controller->inputDev, ABS_Z,  buff[4]);
-    input_report_abs(controller->inputDev, ABS_RZ, buff[5]);
+    /* Face buttons (buff[5]) */
+    input_report_key(controller->inputDev, BTN_A, buff[5] & 0x10);
+    input_report_key(controller->inputDev, BTN_B, buff[5] & 0x20);
+    input_report_key(controller->inputDev, BTN_X, buff[5] & 0x40);
+    input_report_key(controller->inputDev, BTN_Y, buff[5] & 0x80);
 
-    /* Left stick (bytes 6–9) */
+    /* Triggers (10-bit little-endian) */
+    input_report_abs(controller->inputDev, ABS_Z,
+                     (u16)(buff[6] | (buff[7] << 8)));
+    input_report_abs(controller->inputDev, ABS_RZ,
+                     (u16)(buff[8] | (buff[9] << 8)));
+
+    /* Left stick (bytes 10-13) */
     input_report_abs(controller->inputDev, ABS_X,
-                     (s16)(buff[6] | (buff[7] << 8)));
-    input_report_abs(controller->inputDev, ABS_Y,
-                     -(s16)(buff[8] | (buff[9] << 8)));   /* invert Y */
-
-    /* Right stick (bytes 10–13) */
-    input_report_abs(controller->inputDev, ABS_RX,
                      (s16)(buff[10] | (buff[11] << 8)));
+    input_report_abs(controller->inputDev, ABS_Y,
+                     -(s16)(buff[12] | (buff[13] << 8)));
+
+    /* Right stick (bytes 14-17) */
+    input_report_abs(controller->inputDev, ABS_RX,
+                     (s16)(buff[14] | (buff[15] << 8)));
     input_report_abs(controller->inputDev, ABS_RY,
-                     -(s16)(buff[12] | (buff[13] << 8))); /* invert Y */
+                     -(s16)(buff[16] | (buff[17] << 8)));
 
     input_sync(controller->inputDev);
+
+    /* Update stats */
+    myDeviceStats.packets_received++;
+    if (buff[4] || buff[5])
+        myDeviceStats.buttons_pressed++;
+    myDeviceStats.is_connected = 1;
 
 resubmit:
     status = usb_submit_urb(urb, GFP_ATOMIC);

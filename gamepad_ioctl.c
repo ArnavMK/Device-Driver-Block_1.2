@@ -8,10 +8,18 @@ long gamepad_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
     switch (cmd) {
         case GAMEPAD_GET_STATS:
-            if (copy_to_user((struct gamepad_stats __user *)arg,
-                             &myDeviceStats, sizeof(myDeviceStats)))
-                return -EFAULT;
-            return 0;
+    printk(KERN_INFO "ioctl GET_STATS: pkts=%lu btns=%lu\n",
+           myDeviceStats.packets_received,
+           myDeviceStats.buttons_pressed);
+    if (file == NULL) {
+        memcpy((struct gamepad_stats *)arg, &myDeviceStats,
+               sizeof(struct gamepad_stats));
+    } else {
+        if (copy_to_user((struct gamepad_stats __user *)arg,
+                         &myDeviceStats, sizeof(myDeviceStats)))
+            return -EFAULT;
+    }
+    return 0;
 
         case GAMEPAD_RESET:
             myDeviceStats.buttons_pressed  = 0;
