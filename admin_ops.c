@@ -3,7 +3,6 @@
 #include <linux/seq_file.h>
 #include <linux/uaccess.h>
 #include <linux/jiffies.h>
-#include <linux/smp.h>
 
 #include "gamepad.h"
 
@@ -11,26 +10,10 @@ static unsigned long driver_start_jiffies;
 
 static int gamepad_proc_show(struct seq_file *m, void *v)
 {
-    struct file *dev_file;
     struct gamepad_stats stats;
-
-    dev_file = filp_open("/dev/gamepad", O_RDONLY, 0);
-    if (IS_ERR(dev_file)) {
-        seq_printf(m, "Error: Could not open /dev/gamepad (is the driver loaded?)\n");
-        return 0;
-    }
-
-    if (!dev_file->f_op || !dev_file->f_op->unlocked_ioctl) {
-        seq_printf(m, "Error: /dev/gamepad does not support ioctl\n");
-        filp_close(dev_file, NULL);
-        return 0;
-    }
-
-    dev_file->f_op->unlocked_ioctl(dev_file, GAMEPAD_GET_STATS,
-                                   (unsigned long)&stats);
-    filp_close(dev_file, NULL);
-
     unsigned long uptime_sec = (jiffies - driver_start_jiffies) / HZ;
+
+    gamepad_ioctl(NULL, GAMEPAD_GET_STATS, (unsigned long)&stats);
 
     seq_printf(m, "=== Xbox Driver Admin Dashboard ===\n");
     seq_printf(m, "Status:            %s\n", stats.is_halted    ? "LOCKED (E-STOP)" : "OPERATIONAL");
@@ -47,38 +30,28 @@ static int gamepad_proc_show(struct seq_file *m, void *v)
     return 0;
 }
 
-static ssize_t gamepad_proc_write(struct file *file,
-                                  const char __user *ubuf,
-                                  size_t count, loff_t *ppos)
+static ssize_t gamepad_proc_write(struct file *file, const char __user *ubuf, size_t count, loff_t *ppos)
 {
     char buf[16];
     size_t len = min(count, sizeof(buf) - 1);
-    struct file *dev_file;
 
     if (copy_from_user(buf, ubuf, len))
         return -EFAULT;
 
     buf[len] = '\0';
 
-    dev_file = filp_open("/dev/gamepad", O_RDWR, 0);
-    if (IS_ERR(dev_file)) {
-        pr_err("gamepadAdmin: Could not open /dev/gamepad\n");
-        return -ENODEV;
-    }
-
     if (buf[0] == '1') {
-        dev_file->f_op->unlocked_ioctl(dev_file, GAMEPAD_RESET, 0);
-        pr_info("gamepadAdmin: Stats RESET via /proc\n");
+        gamepad_ioctl(NULL, GAMEPAD_RESET, 0);
+        pr_info("gamepadAdmin: Stats reset via /proc\n");
 
     } else if (buf[0] == '9') {
-        dev_file->f_op->unlocked_ioctl(dev_file, GAMEPAD_ESTOP, 0);
+        gamepad_ioctl(NULL, GAMEPAD_ESTOP, 0);
         pr_crit("gamepadAdmin: EMERGENCY STOP via /proc\n");
 
     } else {
         pr_warn("gamepadAdmin: Unknown command '%c'\n", buf[0]);
     }
 
-    filp_close(dev_file, NULL);
     return count;
 }
 

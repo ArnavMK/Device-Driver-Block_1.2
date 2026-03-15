@@ -7,8 +7,8 @@
 
 // 1. Global Variables & Synchronization Tools
 
-static int     dev_open(struct inode *inodep, struct file *filep);
-static int     dev_release(struct inode *inodep, struct file *filep);
+static int dev_open(struct inode *inodep, struct file *filep);
+static int dev_release(struct inode *inodep, struct file *filep);
 static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset);
 static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset);
 
