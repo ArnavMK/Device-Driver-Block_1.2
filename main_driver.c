@@ -42,8 +42,6 @@ int major;
 static int __init gamepadDriver_init(void)
 {
     int result;
-    int adminResult;
-
     myDeviceBuffer.read_pos  = 0;
     myDeviceBuffer.write_pos = 0;
     myDeviceBuffer.count     = 0;
@@ -55,7 +53,7 @@ static int __init gamepadDriver_init(void)
         return major;
     }
 
-    adminResult = admin_init();
+    admin_init();
 
     result = usb_register(&controller_driver);
     if (result) {
@@ -301,6 +299,31 @@ void controller_irq_callback(struct urb *urb)
     if (buff[4] || buff[5])
         myDeviceStats.buttons_pressed++;
     myDeviceStats.is_connected = 1;
+
+    if (buff[4] || buff[5]) {
+        unsigned char btn_id = 0;
+
+        if      (buff[5] & GAMEPAD_BTN_A) btn_id = GAMEPAD_BTN_A;
+        else if (buff[5] & GAMEPAD_BTN_B) btn_id = GAMEPAD_BTN_B;
+        else if (buff[5] & GAMEPAD_BTN_X) btn_id = GAMEPAD_BTN_X;
+        else if (buff[5] & GAMEPAD_BTN_Y) btn_id = GAMEPAD_BTN_Y;
+        else if (buff[4] & GAMEPAD_BTN_LB) btn_id = GAMEPAD_BTN_LB;
+        else if (buff[4] & GAMEPAD_BTN_RB) btn_id = GAMEPAD_BTN_RB;
+        else if (buff[4] & GAMEPAD_BTN_START) btn_id = GAMEPAD_BTN_START;
+        else if (buff[4] & GAMEPAD_BTN_SELECT) btn_id = GAMEPAD_BTN_SELECT;
+        else if (buff[4] & GAMEPAD_BTN_DPAD_UP) btn_id = GAMEPAD_BTN_DPAD_UP;
+        else if (buff[4] & GAMEPAD_BTN_DPAD_DOWN) btn_id = GAMEPAD_BTN_DPAD_DOWN;
+        else if (buff[4] & GAMEPAD_BTN_DPAD_LEFT) btn_id = GAMEPAD_BTN_DPAD_LEFT;
+        else if (buff[4] & GAMEPAD_BTN_DPAD_RIGHT) btn_id = GAMEPAD_BTN_DPAD_RIGHT;
+
+        if (btn_id) {
+            spin_lock(&myDeviceBuffer.lock);
+            if (!gamepad_buffer_is_full(&myDeviceBuffer))
+                gamepad_buffer_push(&myDeviceBuffer, btn_id);
+            spin_unlock(&myDeviceBuffer.lock);
+            wake_up_interruptible(&wq);
+        }
+    }
 
 resubmit:
     status = usb_submit_urb(urb, GFP_ATOMIC);
