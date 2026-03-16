@@ -2,7 +2,6 @@
 #include <linux/uaccess.h>
 #include <linux/fs.h>
 
-#include "gamepad_driver.h"
 
 long gamepad_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
