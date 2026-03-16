@@ -1,15 +1,20 @@
 #include <linux/module.h>
 #include <linux/uaccess.h>
 #include <linux/fs.h>
+#include <linux/string.h>
 
 
 long gamepad_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
     switch (cmd) {
         case GAMEPAD_GET_STATS:
-            if (copy_to_user((struct gamepad_stats __user *)arg,
-                             &myDeviceStats, sizeof(myDeviceStats)))
-                return -EFAULT;
+            if (file == NULL) {
+                memcpy((struct gamepad_stats *)arg, &myDeviceStats, sizeof(struct gamepad_stats));
+            } else {
+                if (copy_to_user((struct gamepad_stats __user *)arg,
+                                 &myDeviceStats, sizeof(myDeviceStats)))
+                    return -EFAULT;
+            }
             return 0;
 
         case GAMEPAD_RESET:
@@ -17,6 +22,7 @@ long gamepad_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             myDeviceStats.packets_received = 0;
             myDeviceStats.is_halted        = 0;
             myDeviceStats.is_connected     = 1;
+            memset(myDeviceStats.individual_counts, 0, sizeof(myDeviceStats.individual_counts));
             pr_info("gamepad_ioctl: stats reset\n");
             return 0;
 
