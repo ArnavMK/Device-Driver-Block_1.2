@@ -29,8 +29,21 @@ struct gamepad_buffer {
     int read_pos;
     int write_pos;
     int count;
-    spinlock_t lock; // To protect buffer access
+    spinlock_t lock; 
 };
+
+#define GAMEPAD_BTN_DPAD_UP    0x01
+#define GAMEPAD_BTN_DPAD_DOWN  0x02
+#define GAMEPAD_BTN_DPAD_LEFT  0x04
+#define GAMEPAD_BTN_DPAD_RIGHT 0x08
+#define GAMEPAD_BTN_START      0x10
+#define GAMEPAD_BTN_SELECT     0x20
+#define GAMEPAD_BTN_LB         0x40
+#define GAMEPAD_BTN_RB         0x80
+#define GAMEPAD_BTN_A          0x10
+#define GAMEPAD_BTN_B          0x20
+#define GAMEPAD_BTN_X          0x40
+#define GAMEPAD_BTN_Y          0x80
 
 //── Per-device structure
 struct xboxController {
