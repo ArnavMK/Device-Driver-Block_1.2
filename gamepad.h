@@ -10,6 +10,8 @@
 #include <linux/input.h>
 #include <linux/ioctl.h>
 #include <linux/spinlock.h>
+#include <linux/string.h>
+
 
 //── Device identity
 #define DEVICE_NAME "gamepadDriver"
@@ -19,20 +21,7 @@
 #define XBOX_VENDOR_ID 0x045e
 #define XBOX_PRODUCT_ID 0x0b12
 
-
-#define GAMEPAD_BTN_DPAD_UP    0x01
-#define GAMEPAD_BTN_DPAD_DOWN  0x02
-#define GAMEPAD_BTN_DPAD_LEFT  0x04
-#define GAMEPAD_BTN_DPAD_RIGHT 0x08
-#define GAMEPAD_BTN_START      0x10
-#define GAMEPAD_BTN_SELECT     0x20
-#define GAMEPAD_BTN_LB         0x40
-#define GAMEPAD_BTN_RB         0x80
-
-#define GAMEPAD_BTN_A          0x10
-#define GAMEPAD_BTN_B          0x20
-#define GAMEPAD_BTN_X          0x40
-#define GAMEPAD_BTN_Y          0x80
+#define MAX_BUTTONS 12
 
 // ── Circular buffer
 struct gamepad_buffer {
@@ -49,15 +38,23 @@ struct xboxController {
     struct input_dev *inputDev;
     unsigned char *buff;
     struct urb *interruptURB;
+
+	unsigned char prev_b4;
+	unsigned char prev_b5;
 };
 
 struct gamepad_stats {
     unsigned long buttons_pressed;
+	unsigned long individual_counts[MAX_BUTTONS];
     unsigned long packets_received;
     int is_connected;
     int is_halted;
 };
-extern wait_queue_head_t wq; 
+static const char *button_names[] = {
+    "DPAD_UP", "DPAD_DOWN", "DPAD_LEFT", "DPAD_RIGHT",
+    "START", "SELECT", "LB", "RB", "A", "B", "X", "Y"
+};
+extern wait_queue_head_t wq;
 
 // ioctl command definitions
 #define GAMEPAD_MAGIC      'G'

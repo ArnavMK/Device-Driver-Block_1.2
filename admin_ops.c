@@ -12,16 +12,27 @@ static int gamepad_proc_show(struct seq_file *m, void *v)
 {
     struct gamepad_stats stats;
     unsigned long uptime_sec = (jiffies - driver_start_jiffies) / HZ;
+	int i;
 
     gamepad_ioctl(NULL, GAMEPAD_GET_STATS, (unsigned long)&stats);
 
     seq_printf(m, "=== Xbox Driver Admin Dashboard ===\n");
     seq_printf(m, "Status:            %s\n", stats.is_halted    ? "LOCKED (E-STOP)" : "OPERATIONAL");
     seq_printf(m, "Connection:        %s\n", stats.is_connected ? "OK"              : "DISCONNECTED");
-    seq_printf(m, "-----------------------------------\n");
     seq_printf(m, "Driver Uptime:     %lu seconds\n", uptime_sec);
-    seq_printf(m, "Total Button Hits: %lu\n", stats.buttons_pressed);
-    seq_printf(m, "Data Packets:      %lu\n", stats.packets_received);
+    seq_printf(m, "-----------------------------------\n");
+
+    // Display individual click counts
+    seq_printf(m, "BUTTON NAME          | CLICKS\n");
+    seq_printf(m, "---------------------|-----------\n");
+
+    for (i = 0; i < MAX_BUTTONS; i++) {
+        seq_printf(m, "%-20s | %lu\n", button_names[i], stats.individual_counts[i]);
+    }
+
+    seq_printf(m, "-----------------------------------\n");
+    seq_printf(m, "Total Unique Clicks: %lu\n", stats.buttons_pressed);
+    seq_printf(m, "Raw USB Packets:     %lu\n", stats.packets_received);
     seq_printf(m, "-----------------------------------\n");
     seq_printf(m, "Commands (echo N > /proc/gamepad_stats):\n");
     seq_printf(m, "  1 = Reset stats\n");
