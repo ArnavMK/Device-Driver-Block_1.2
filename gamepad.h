@@ -6,7 +6,6 @@
 #define GAMEPAD_DRIVER_H
 
 #include <linux/fs.h>
-#include <linux/mutex.h>
 #include <linux/usb.h>
 #include <linux/input.h>
 #include <linux/ioctl.h>

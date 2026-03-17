@@ -42,7 +42,6 @@ int major;
 static int __init gamepadDriver_init(void)
 {
     int result;
-    int adminResult;
 
 	memset(&myDeviceStats, 0, sizeof(struct gamepad_stats));
     myDeviceBuffer.read_pos  = 0;
@@ -56,7 +55,7 @@ static int __init gamepadDriver_init(void)
         return major;
     }
 
-    adminResult = admin_init();
+    admin_init();
 
     result = usb_register(&controller_driver);
     if (result) {
