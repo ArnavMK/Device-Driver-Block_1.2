@@ -32,18 +32,18 @@ struct gamepad_buffer {
     spinlock_t lock; 
 };
 
-#define GAMEPAD_BTN_DPAD_UP    0x01
-#define GAMEPAD_BTN_DPAD_DOWN  0x02
-#define GAMEPAD_BTN_DPAD_LEFT  0x04
+#define GAMEPAD_BTN_DPAD_UP 0x01
+#define GAMEPAD_BTN_DPAD_DOWN 0x02
+#define GAMEPAD_BTN_DPAD_LEFT 0x04
 #define GAMEPAD_BTN_DPAD_RIGHT 0x08
-#define GAMEPAD_BTN_START      0x10
-#define GAMEPAD_BTN_SELECT     0x20
-#define GAMEPAD_BTN_LB         0x40
-#define GAMEPAD_BTN_RB         0x80
-#define GAMEPAD_BTN_A          0x10
-#define GAMEPAD_BTN_B          0x20
-#define GAMEPAD_BTN_X          0x40
-#define GAMEPAD_BTN_Y          0x80
+#define GAMEPAD_BTN_START 0x10
+#define GAMEPAD_BTN_SELECT 0x20
+#define GAMEPAD_BTN_LB 0x40
+#define GAMEPAD_BTN_RB 0x80
+#define GAMEPAD_BTN_A 0x10
+#define GAMEPAD_BTN_B 0x20
+#define GAMEPAD_BTN_X 0x40
+#define GAMEPAD_BTN_Y 0x80
 
 //── Per-device structure
 struct xboxController {
@@ -70,10 +70,10 @@ static const char *button_names[] = {
 extern wait_queue_head_t wq;
 
 // ioctl command definitions
-#define GAMEPAD_MAGIC      'G'
-#define GAMEPAD_GET_STATS  _IOR(GAMEPAD_MAGIC, 1, struct gamepad_stats)
-#define GAMEPAD_RESET      _IO (GAMEPAD_MAGIC, 2)
-#define GAMEPAD_ESTOP      _IO (GAMEPAD_MAGIC, 3)
+#define GAMEPAD_MAGIC 'G'
+#define GAMEPAD_GET_STATS _IOR(GAMEPAD_MAGIC, 1, struct gamepad_stats)
+#define GAMEPAD_RESET _IO (GAMEPAD_MAGIC, 2)
+#define GAMEPAD_ESTOP _IO (GAMEPAD_MAGIC, 3)
 
 //Buffer Commands
 void gamepad_buffer_init(struct gamepad_buffer *buf);

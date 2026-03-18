@@ -269,28 +269,28 @@ void controller_irq_callback(struct urb *urb)
     if (clicks_b4 & 0x02) myDeviceStats.individual_counts[1]++;
     if (clicks_b4 & 0x04) myDeviceStats.individual_counts[2]++;
     if (clicks_b4 & 0x08) myDeviceStats.individual_counts[3]++;
-    if (clicks_b4 & 0x10) myDeviceStats.individual_counts[4]++;
-    if (clicks_b4 & 0x20) myDeviceStats.individual_counts[5]++;
-    if (clicks_b4 & 0x40) myDeviceStats.individual_counts[6]++;
-    if (clicks_b4 & 0x80) myDeviceStats.individual_counts[7]++;
-    if (clicks_b5 & 0x10) myDeviceStats.individual_counts[8]++;
-    if (clicks_b5 & 0x20) myDeviceStats.individual_counts[9]++;
-    if (clicks_b5 & 0x40) myDeviceStats.individual_counts[10]++;
-    if (clicks_b5 & 0x80) myDeviceStats.individual_counts[11]++;
+    if (clicks_b5 & 0x10) myDeviceStats.individual_counts[4]++;
+    if (clicks_b5 & 0x20) myDeviceStats.individual_counts[5]++;
+    if (clicks_b5 & 0x40) myDeviceStats.individual_counts[6]++;
+    if (clicks_b5 & 0x80) myDeviceStats.individual_counts[7]++;
+    if (clicks_b4 & 0x10) myDeviceStats.individual_counts[8]++;
+    if (clicks_b4 & 0x20) myDeviceStats.individual_counts[9]++;
+    if (clicks_b4 & 0x40) myDeviceStats.individual_counts[10]++;
+    if (clicks_b4 & 0x80) myDeviceStats.individual_counts[11]++;
 
 
     if (clicks_b4 || clicks_b5) {
         myDeviceStats.buttons_pressed++;
         btn_id = 0;
 
-        if (clicks_b5 & 0x10) btn_id = GAMEPAD_BTN_A;
-        else if (clicks_b5 & 0x20) btn_id = GAMEPAD_BTN_B;
-        else if (clicks_b5 & 0x40) btn_id = GAMEPAD_BTN_X;
-        else if (clicks_b5 & 0x80) btn_id = GAMEPAD_BTN_Y;
-        else if (clicks_b4 & 0x40) btn_id = GAMEPAD_BTN_LB;
-        else if (clicks_b4 & 0x80) btn_id = GAMEPAD_BTN_RB;
-        else if (clicks_b4 & 0x10) btn_id = GAMEPAD_BTN_START;
-        else if (clicks_b4 & 0x20) btn_id = GAMEPAD_BTN_SELECT;
+        if (clicks_b4 & 0x10) btn_id = GAMEPAD_BTN_A;
+        else if (clicks_b4 & 0x20) btn_id = GAMEPAD_BTN_B;
+        else if (clicks_b4 & 0x40) btn_id = GAMEPAD_BTN_X;
+        else if (clicks_b4 & 0x80) btn_id = GAMEPAD_BTN_Y;
+        else if (clicks_b5 & 0x40) btn_id = GAMEPAD_BTN_LB;
+        else if (clicks_b5 & 0x80) btn_id = GAMEPAD_BTN_RB;
+        else if (clicks_b5 & 0x10) btn_id = GAMEPAD_BTN_START;
+        else if (clicks_b5 & 0x20) btn_id = GAMEPAD_BTN_SELECT;
         else if (clicks_b4 & 0x01) btn_id = GAMEPAD_BTN_DPAD_UP;
         else if (clicks_b4 & 0x02) btn_id = GAMEPAD_BTN_DPAD_DOWN;
         else if (clicks_b4 & 0x04) btn_id = GAMEPAD_BTN_DPAD_LEFT;
@@ -310,14 +310,14 @@ void controller_irq_callback(struct urb *urb)
     input_report_key(controller->inputDev, BTN_DPAD_DOWN, buff[4] & 0x02);
     input_report_key(controller->inputDev, BTN_DPAD_LEFT, buff[4] & 0x04);
     input_report_key(controller->inputDev, BTN_DPAD_RIGHT, buff[4] & 0x08);
-    input_report_key(controller->inputDev, BTN_START, buff[4] & 0x10);
-    input_report_key(controller->inputDev, BTN_SELECT, buff[4] & 0x20);
-    input_report_key(controller->inputDev, BTN_TL, buff[4] & 0x40);
-    input_report_key(controller->inputDev, BTN_TR, buff[4] & 0x80);
-    input_report_key(controller->inputDev, BTN_A, buff[5] & 0x10);
-    input_report_key(controller->inputDev, BTN_B, buff[5] & 0x20);
-    input_report_key(controller->inputDev, BTN_X, buff[5] & 0x40);
-    input_report_key(controller->inputDev, BTN_Y, buff[5] & 0x80);
+    input_report_key(controller->inputDev, BTN_START, buff[5] & 0x10);
+    input_report_key(controller->inputDev, BTN_SELECT, buff[5] & 0x20);
+    input_report_key(controller->inputDev, BTN_TL, buff[5] & 0x40);
+    input_report_key(controller->inputDev, BTN_TR, buff[5] & 0x80);
+    input_report_key(controller->inputDev, BTN_A, buff[4] & 0x10);
+    input_report_key(controller->inputDev, BTN_B, buff[4] & 0x20);
+    input_report_key(controller->inputDev, BTN_X, buff[4] & 0x40);
+    input_report_key(controller->inputDev, BTN_Y, buff[4] & 0x80);
 
     /* Triggers */
     input_report_abs(controller->inputDev, ABS_Z,  (u16)(buff[6]  | (buff[7]  << 8)));
