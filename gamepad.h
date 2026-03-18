@@ -63,7 +63,7 @@ struct gamepad_stats {
     int is_connected;
     int is_halted;
 };
-static const char *button_names[] = {
+const char *button_names[] = {
     "DPAD_UP", "DPAD_DOWN", "DPAD_LEFT", "DPAD_RIGHT",
     "START", "SELECT", "LB", "RB", "A", "B", "X", "Y"
 };
@@ -73,7 +73,6 @@ extern wait_queue_head_t wq;
 #define GAMEPAD_MAGIC 'G'
 #define GAMEPAD_GET_STATS _IOR(GAMEPAD_MAGIC, 1, struct gamepad_stats)
 #define GAMEPAD_RESET _IO (GAMEPAD_MAGIC, 2)
-#define GAMEPAD_ESTOP _IO (GAMEPAD_MAGIC, 3)
 
 //Buffer Commands
 void gamepad_buffer_init(struct gamepad_buffer *buf);

@@ -36,7 +36,7 @@ static int gamepad_proc_show(struct seq_file *m, void *v)
     seq_printf(m, "-----------------------------------\n");
     seq_printf(m, "Commands (echo N > /proc/gamepad_stats):\n");
     seq_printf(m, "  1 = Reset stats\n");
-    seq_printf(m, "  9 = Emergency stop\n");
+
 
     return 0;
 }
@@ -54,10 +54,6 @@ static ssize_t gamepad_proc_write(struct file *file, const char __user *ubuf, si
     if (buf[0] == '1') {
         gamepad_ioctl(NULL, GAMEPAD_RESET, 0);
         pr_info("gamepadAdmin: Stats reset via /proc\n");
-
-    } else if (buf[0] == '9') {
-        gamepad_ioctl(NULL, GAMEPAD_ESTOP, 0);
-        pr_crit("gamepadAdmin: EMERGENCY STOP via /proc\n");
 
     } else {
         pr_warn("gamepadAdmin: Unknown command '%c'\n", buf[0]);

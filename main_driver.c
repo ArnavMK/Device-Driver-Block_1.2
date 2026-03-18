@@ -265,18 +265,20 @@ void controller_irq_callback(struct urb *urb)
     clicks_b5 = buff[5] & ~controller->prev_b5;
 
     /* Increment individual button counters on new press */
-    if (clicks_b4 & 0x01) myDeviceStats.individual_counts[0]++;
-    if (clicks_b4 & 0x02) myDeviceStats.individual_counts[1]++;
-    if (clicks_b4 & 0x04) myDeviceStats.individual_counts[2]++;
-    if (clicks_b4 & 0x08) myDeviceStats.individual_counts[3]++;
-    if (clicks_b5 & 0x10) myDeviceStats.individual_counts[4]++;
-    if (clicks_b5 & 0x20) myDeviceStats.individual_counts[5]++;
-    if (clicks_b5 & 0x40) myDeviceStats.individual_counts[6]++;
-    if (clicks_b5 & 0x80) myDeviceStats.individual_counts[7]++;
-    if (clicks_b4 & 0x10) myDeviceStats.individual_counts[8]++;
-    if (clicks_b4 & 0x20) myDeviceStats.individual_counts[9]++;
-    if (clicks_b4 & 0x40) myDeviceStats.individual_counts[10]++;
-    if (clicks_b4 & 0x80) myDeviceStats.individual_counts[11]++;
+    /* buff[4] */
+if (clicks_b4 & 0x01) myDeviceStats.individual_counts[0]++;  // DPAD_UP
+if (clicks_b4 & 0x02) myDeviceStats.individual_counts[1]++;  // DPAD_DOWN
+if (clicks_b4 & 0x04) myDeviceStats.individual_counts[2]++;  // DPAD_LEFT
+if (clicks_b4 & 0x08) myDeviceStats.individual_counts[3]++;  // DPAD_RIGHT
+if (clicks_b4 & 0x10) myDeviceStats.individual_counts[8]++;  // A
+if (clicks_b4 & 0x20) myDeviceStats.individual_counts[9]++;  // B
+if (clicks_b4 & 0x40) myDeviceStats.individual_counts[10]++; // X
+if (clicks_b4 & 0x80) myDeviceStats.individual_counts[11]++; // Y
+/* buff[5] */
+if (clicks_b5 & 0x10) myDeviceStats.individual_counts[4]++;  // START
+if (clicks_b5 & 0x20) myDeviceStats.individual_counts[5]++;  // SELECT
+if (clicks_b5 & 0x40) myDeviceStats.individual_counts[6]++;  // LB
+if (clicks_b5 & 0x80) myDeviceStats.individual_counts[7]++;  // RB
 
 
     if (clicks_b4 || clicks_b5) {
