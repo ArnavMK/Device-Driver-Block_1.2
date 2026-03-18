@@ -1,16 +1,15 @@
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h> 
-#include <linux/wait.h>    
-#include <linux/mutex.h>   
+#include <linux/wait.h>     
 #include "gamepad.h"
 
 // 1. Global Variables & Synchronization Tools
 
-static int dev_open(struct inode *inodep, struct file *filep);
-static int dev_release(struct inode *inodep, struct file *filep);
-static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset);
-static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset);
+int dev_open(struct inode *inodep, struct file *filep);
+int dev_release(struct inode *inodep, struct file *filep);
+ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset);
+ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset);
 
 struct file_operations fops = {
     .owner = THIS_MODULE,
