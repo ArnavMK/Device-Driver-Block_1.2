@@ -249,12 +249,12 @@ void controller_irq_callback(struct urb *urb)
     int status = urb->status;
     unsigned char clicks_b4;
     unsigned char clicks_b5;
-    unsigned char btn_id;
+    unsigned char btn_id = 0;
 
     if (status) {
         if (status == -ENOENT || status == -ECONNRESET || status == -ESHUTDOWN)
             return;
-        printk(KERN_ERR "URB error: %d\n", status);
+        printk(KERN_ERR "gamepadDriver: URB error: %d\n", status);
         goto resubmit;
     }
 
@@ -264,39 +264,38 @@ void controller_irq_callback(struct urb *urb)
     clicks_b4 = buff[4] & ~controller->prev_b4;
     clicks_b5 = buff[5] & ~controller->prev_b5;
 
-    /* Increment individual button counters on new press */
-    /* buff[4] */
-if (clicks_b4 & 0x01) myDeviceStats.individual_counts[0]++;  // DPAD_UP
-if (clicks_b4 & 0x02) myDeviceStats.individual_counts[1]++;  // DPAD_DOWN
-if (clicks_b4 & 0x04) myDeviceStats.individual_counts[2]++;  // DPAD_LEFT
-if (clicks_b4 & 0x08) myDeviceStats.individual_counts[3]++;  // DPAD_RIGHT
-if (clicks_b4 & 0x10) myDeviceStats.individual_counts[8]++;  // A
-if (clicks_b4 & 0x20) myDeviceStats.individual_counts[9]++;  // B
-if (clicks_b4 & 0x40) myDeviceStats.individual_counts[10]++; // X
-if (clicks_b4 & 0x80) myDeviceStats.individual_counts[11]++; // Y
-/* buff[5] */
-if (clicks_b5 & 0x10) myDeviceStats.individual_counts[4]++;  // START
-if (clicks_b5 & 0x20) myDeviceStats.individual_counts[5]++;  // SELECT
-if (clicks_b5 & 0x40) myDeviceStats.individual_counts[6]++;  // LB
-if (clicks_b5 & 0x80) myDeviceStats.individual_counts[7]++;  // RB
+    /* Byte 4: Menu, View, A, B, X, Y */
+    if (clicks_b4 & 0x04) myDeviceStats.individual_counts[4]++;  // Menu (Start)
+    if (clicks_b4 & 0x08) myDeviceStats.individual_counts[5]++;  // View (Select)
+    if (clicks_b4 & 0x10) myDeviceStats.individual_counts[8]++;  // A
+    if (clicks_b4 & 0x20) myDeviceStats.individual_counts[9]++;  // B
+    if (clicks_b4 & 0x40) myDeviceStats.individual_counts[10]++; // X
+    if (clicks_b4 & 0x80) myDeviceStats.individual_counts[11]++; // Y
 
+    /* Byte 5: D-Pad, LB, RB, Stick Clicks */
+    if (clicks_b5 & 0x01) myDeviceStats.individual_counts[0]++;  // DPAD_UP
+    if (clicks_b5 & 0x02) myDeviceStats.individual_counts[1]++;  // DPAD_DOWN
+    if (clicks_b5 & 0x04) myDeviceStats.individual_counts[2]++;  // DPAD_LEFT
+    if (clicks_b5 & 0x08) myDeviceStats.individual_counts[3]++;  // DPAD_RIGHT
+    if (clicks_b5 & 0x10) myDeviceStats.individual_counts[6]++;  // LB
+    if (clicks_b5 & 0x20) myDeviceStats.individual_counts[7]++;  // RB
 
+    /* --- 2. Handle Custom Buffer Pushing --- */
     if (clicks_b4 || clicks_b5) {
         myDeviceStats.buttons_pressed++;
-        btn_id = 0;
 
-        if (clicks_b4 & 0x10) btn_id = GAMEPAD_BTN_A;
+        if      (clicks_b4 & 0x10) btn_id = GAMEPAD_BTN_A;
         else if (clicks_b4 & 0x20) btn_id = GAMEPAD_BTN_B;
         else if (clicks_b4 & 0x40) btn_id = GAMEPAD_BTN_X;
         else if (clicks_b4 & 0x80) btn_id = GAMEPAD_BTN_Y;
-        else if (clicks_b5 & 0x40) btn_id = GAMEPAD_BTN_LB;
-        else if (clicks_b5 & 0x80) btn_id = GAMEPAD_BTN_RB;
-        else if (clicks_b5 & 0x10) btn_id = GAMEPAD_BTN_START;
-        else if (clicks_b5 & 0x20) btn_id = GAMEPAD_BTN_SELECT;
-        else if (clicks_b4 & 0x01) btn_id = GAMEPAD_BTN_DPAD_UP;
-        else if (clicks_b4 & 0x02) btn_id = GAMEPAD_BTN_DPAD_DOWN;
-        else if (clicks_b4 & 0x04) btn_id = GAMEPAD_BTN_DPAD_LEFT;
-        else if (clicks_b4 & 0x08) btn_id = GAMEPAD_BTN_DPAD_RIGHT;
+        else if (clicks_b5 & 0x10) btn_id = GAMEPAD_BTN_LB;
+        else if (clicks_b5 & 0x20) btn_id = GAMEPAD_BTN_RB;
+        else if (clicks_b4 & 0x04) btn_id = GAMEPAD_BTN_START;
+        else if (clicks_b4 & 0x08) btn_id = GAMEPAD_BTN_SELECT;
+        else if (clicks_b5 & 0x01) btn_id = GAMEPAD_BTN_DPAD_UP;
+        else if (clicks_b5 & 0x02) btn_id = GAMEPAD_BTN_DPAD_DOWN;
+        else if (clicks_b5 & 0x04) btn_id = GAMEPAD_BTN_DPAD_LEFT;
+        else if (clicks_b5 & 0x08) btn_id = GAMEPAD_BTN_DPAD_RIGHT;
 
         if (btn_id) {
             spin_lock(&myDeviceBuffer.lock);
@@ -307,31 +306,34 @@ if (clicks_b5 & 0x80) myDeviceStats.individual_counts[7]++;  // RB
         }
     }
 
-    /* Report buttons to input subsystem */
-    input_report_key(controller->inputDev, BTN_DPAD_UP, buff[4] & 0x01);
-    input_report_key(controller->inputDev, BTN_DPAD_DOWN, buff[4] & 0x02);
-    input_report_key(controller->inputDev, BTN_DPAD_LEFT, buff[4] & 0x04);
-    input_report_key(controller->inputDev, BTN_DPAD_RIGHT, buff[4] & 0x08);
-    input_report_key(controller->inputDev, BTN_START, buff[5] & 0x10);
-    input_report_key(controller->inputDev, BTN_SELECT, buff[5] & 0x20);
-    input_report_key(controller->inputDev, BTN_TL, buff[5] & 0x40);
-    input_report_key(controller->inputDev, BTN_TR, buff[5] & 0x80);
+    // Buttons (Byte 4)
     input_report_key(controller->inputDev, BTN_A, buff[4] & 0x10);
     input_report_key(controller->inputDev, BTN_B, buff[4] & 0x20);
     input_report_key(controller->inputDev, BTN_X, buff[4] & 0x40);
     input_report_key(controller->inputDev, BTN_Y, buff[4] & 0x80);
+    input_report_key(controller->inputDev, BTN_START, buff[4] & 0x04);
+    input_report_key(controller->inputDev, BTN_SELECT, buff[4] & 0x08);
 
-    /* Triggers */
-    input_report_abs(controller->inputDev, ABS_Z,  (u16)(buff[6]  | (buff[7]  << 8)));
-    input_report_abs(controller->inputDev, ABS_RZ, (u16)(buff[8]  | (buff[9]  << 8)));
+    // Buttons/DPAD (Byte 5)
+    input_report_key(controller->inputDev, BTN_TL, buff[5] & 0x10);
+    input_report_key(controller->inputDev, BTN_TR, buff[5] & 0x20);
+    input_report_key(controller->inputDev, BTN_THUMBL, buff[5] & 0x40);
+    input_report_key(controller->inputDev, BTN_THUMBR, buff[5] & 0x80);
+    input_report_key(controller->inputDev, BTN_DPAD_UP, buff[5] & 0x01);
+    input_report_key(controller->inputDev, BTN_DPAD_DOWN, buff[5] & 0x02);
+    input_report_key(controller->inputDev, BTN_DPAD_LEFT, buff[5] & 0x04);
+    input_report_key(controller->inputDev, BTN_DPAD_RIGHT, buff[5] & 0x08);
 
-    /* Left stick */
-    input_report_abs(controller->inputDev, ABS_X,   (s16)(buff[10] | (buff[11] << 8)));
-    input_report_abs(controller->inputDev, ABS_Y,  -(s16)(buff[12] | (buff[13] << 8)));
+    /* --- 4. Analog Axes --- */
+    // Triggers (Bytes 6-9) - 10-bit values (0-1023)
+    input_report_abs(controller->inputDev, ABS_Z, (__u16)(buff[6] | (buff[7] << 8)));
+    input_report_abs(controller->inputDev, ABS_RZ, (__u16)(buff[8] | (buff[9] << 8)));
 
-    /* Right stick */
-    input_report_abs(controller->inputDev, ABS_RX,  (s16)(buff[14] | (buff[15] << 8)));
-    input_report_abs(controller->inputDev, ABS_RY, -(s16)(buff[16] | (buff[17] << 8)));
+    // Sticks (Bytes 10-17) - 16-bit signed values
+    input_report_abs(controller->inputDev, ABS_X,(__s16)(buff[10] | (buff[11] << 8)));
+    input_report_abs(controller->inputDev, ABS_Y, -(__s16)(buff[12] | (buff[13] << 8)));
+    input_report_abs(controller->inputDev, ABS_RX, (__s16)(buff[14] | (buff[15] << 8)));
+    input_report_abs(controller->inputDev, ABS_RY, -(__s16)(buff[16] | (buff[17] << 8)));
 
     input_sync(controller->inputDev);
 
