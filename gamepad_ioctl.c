@@ -27,10 +27,6 @@ long gamepad_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             pr_info("gamepad_ioctl: stats reset\n");
             return 0;
 
-        case GAMEPAD_ESTOP:
-            myDeviceStats.is_halted = 1;
-            pr_crit("gamepad_ioctl: EMERGENCY STOP\n");
-            return 0;
 
         default:
             return -EINVAL;

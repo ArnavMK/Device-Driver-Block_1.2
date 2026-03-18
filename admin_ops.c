@@ -8,6 +8,7 @@
 
 static unsigned long driver_start_jiffies;
 
+
 static int gamepad_proc_show(struct seq_file *m, void *v)
 {
     struct gamepad_stats stats;

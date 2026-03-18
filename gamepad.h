@@ -63,7 +63,7 @@ struct gamepad_stats {
     int is_connected;
     int is_halted;
 };
-const char *button_names[] = {
+static const char *button_names[] = {
     "DPAD_UP", "DPAD_DOWN", "DPAD_LEFT", "DPAD_RIGHT",
     "START", "SELECT", "LB", "RB", "A", "B", "X", "Y"
 };
