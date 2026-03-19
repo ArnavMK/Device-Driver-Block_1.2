@@ -39,6 +39,8 @@ struct gamepad_buffer myDeviceBuffer;
 struct gamepad_stats  myDeviceStats;
 int major;
 
+
+//Load Module
 static int __init gamepadDriver_init(void)
 {
     int result;
@@ -68,7 +70,7 @@ static int __init gamepadDriver_init(void)
     printk(KERN_INFO "Controller loaded with major number %d\n", major);
     return 0;
 }
-
+//Unload Module
 static void __exit gamepadDriver_exit(void)
 {
     admin_exit(); // Clean up the admin module (proc interface)
@@ -76,7 +78,7 @@ static void __exit gamepadDriver_exit(void)
     unregister_chrdev(major, DEVICE_NAME);
     printk(KERN_INFO "Controller unloaded\n");
 }
-
+//Controller Plugged In
 int controller_probe(struct usb_interface *usbInterface, const struct usb_device_id *id)
 {
     struct usb_device *usbDev = interface_to_usbdev(usbInterface);
@@ -134,7 +136,7 @@ int controller_probe(struct usb_interface *usbInterface, const struct usb_device
 
     usb_set_intfdata(usbInterface, controller);
 
-    /* Buttons */
+    //Buttons
     input_set_capability(controller->inputDev, EV_KEY, BTN_A);
     input_set_capability(controller->inputDev, EV_KEY, BTN_B);
     input_set_capability(controller->inputDev, EV_KEY, BTN_X);
@@ -144,24 +146,21 @@ int controller_probe(struct usb_interface *usbInterface, const struct usb_device
     input_set_capability(controller->inputDev, EV_KEY, BTN_SELECT);
     input_set_capability(controller->inputDev, EV_KEY, BTN_START);
 
-    /* D-pad */
+    // D-Pad
     input_set_capability(controller->inputDev, EV_KEY, BTN_DPAD_UP);
     input_set_capability(controller->inputDev, EV_KEY, BTN_DPAD_DOWN);
     input_set_capability(controller->inputDev, EV_KEY, BTN_DPAD_LEFT);
     input_set_capability(controller->inputDev, EV_KEY, BTN_DPAD_RIGHT);
 
-    /* Left stick */
+    // Left Joystick
     input_set_abs_params(controller->inputDev, ABS_X,  -32768, 32767, 16, 128);
     input_set_abs_params(controller->inputDev, ABS_Y,  -32768, 32767, 16, 128);
 
-    /* Triggers */
-    input_set_abs_params(controller->inputDev, ABS_Z,  0, 255, 0, 0);
-    input_set_abs_params(controller->inputDev, ABS_RZ, 0, 255, 0, 0);
-
-    /* Right stick */
+    // Right Joystick
     input_set_abs_params(controller->inputDev, ABS_RX, -32768, 32767, 16, 128);
     input_set_abs_params(controller->inputDev, ABS_RY, -32768, 32767, 16, 128);
 
+    //Register input device
     error = input_register_device(controller->inputDev);
     if (error) {
         printk(KERN_ERR "Could not register inputDev device\n");
@@ -173,6 +172,7 @@ int controller_probe(struct usb_interface *usbInterface, const struct usb_device
     }
 
     interface_desc = usbInterface->cur_altsetting;
+    //find place were to receive interrupt data
     for (i = 0; i < interface_desc->desc.bNumEndpoints; i++) {
         endpoint = &interface_desc->endpoint[i].desc;
         if (usb_endpoint_xfer_int(endpoint) && usb_endpoint_dir_in(endpoint)) {
@@ -200,7 +200,7 @@ int controller_probe(struct usb_interface *usbInterface, const struct usb_device
         kfree(controller);
         return -ENODEV;
     }
-
+    //Urb start to receive data from controller
     urb_submit_result = usb_submit_urb(controller->interruptURB, GFP_KERNEL);
     if (urb_submit_result) {
         printk(KERN_ERR "Could not submit URB for controller\n");
@@ -211,6 +211,7 @@ int controller_probe(struct usb_interface *usbInterface, const struct usb_device
         return urb_submit_result;
     }
 
+    //Send GIP packet and wake controller
     gip_buf = kmemdup(gip_pkt, sizeof(gip_pkt), GFP_KERNEL);
     if (gip_buf) {
         usb_interrupt_msg(usbDev,
@@ -225,6 +226,7 @@ int controller_probe(struct usb_interface *usbInterface, const struct usb_device
     return 0;
 }
 
+//Controller unplugged
 void controller_disconnect(struct usb_interface *usbInterface)
 {
     struct xboxController *controller = usb_get_intfdata(usbInterface);
@@ -264,15 +266,15 @@ void controller_irq_callback(struct urb *urb)
     clicks_b4 = buff[4] & ~controller->prev_b4;
     clicks_b5 = buff[5] & ~controller->prev_b5;
 
-    /* Byte 4: Menu, View, A, B, X, Y */
-    if (clicks_b4 & 0x04) myDeviceStats.individual_counts[4]++;  // Menu (Start)
-    if (clicks_b4 & 0x08) myDeviceStats.individual_counts[5]++;  // View (Select)
+    //Buttons
+    if (clicks_b4 & 0x04) myDeviceStats.individual_counts[4]++;  // Start
+    if (clicks_b4 & 0x08) myDeviceStats.individual_counts[5]++;  // Select
     if (clicks_b4 & 0x10) myDeviceStats.individual_counts[8]++;  // A
     if (clicks_b4 & 0x20) myDeviceStats.individual_counts[9]++;  // B
     if (clicks_b4 & 0x40) myDeviceStats.individual_counts[10]++; // X
     if (clicks_b4 & 0x80) myDeviceStats.individual_counts[11]++; // Y
 
-    /* Byte 5: D-Pad, LB, RB, Stick Clicks */
+    // D-Pad, Lb, Rb
     if (clicks_b5 & 0x01) myDeviceStats.individual_counts[0]++;  // DPAD_UP
     if (clicks_b5 & 0x02) myDeviceStats.individual_counts[1]++;  // DPAD_DOWN
     if (clicks_b5 & 0x04) myDeviceStats.individual_counts[2]++;  // DPAD_LEFT
@@ -280,11 +282,11 @@ void controller_irq_callback(struct urb *urb)
     if (clicks_b5 & 0x10) myDeviceStats.individual_counts[6]++;  // LB
     if (clicks_b5 & 0x20) myDeviceStats.individual_counts[7]++;  // RB
 
-    /* --- 2. Handle Custom Buffer Pushing --- */
+    //Increase button press count and push to buffer
     if (clicks_b4 || clicks_b5) {
         myDeviceStats.buttons_pressed++;
 
-        if      (clicks_b4 & 0x10) btn_id = GAMEPAD_BTN_A;
+        if (clicks_b4 & 0x10) btn_id = GAMEPAD_BTN_A;
         else if (clicks_b4 & 0x20) btn_id = GAMEPAD_BTN_B;
         else if (clicks_b4 & 0x40) btn_id = GAMEPAD_BTN_X;
         else if (clicks_b4 & 0x80) btn_id = GAMEPAD_BTN_Y;
@@ -306,7 +308,7 @@ void controller_irq_callback(struct urb *urb)
         }
     }
 
-    // Buttons (Byte 4)
+    // Buttons 
     input_report_key(controller->inputDev, BTN_A, buff[4] & 0x10);
     input_report_key(controller->inputDev, BTN_B, buff[4] & 0x20);
     input_report_key(controller->inputDev, BTN_X, buff[4] & 0x40);
@@ -314,7 +316,7 @@ void controller_irq_callback(struct urb *urb)
     input_report_key(controller->inputDev, BTN_START, buff[4] & 0x04);
     input_report_key(controller->inputDev, BTN_SELECT, buff[4] & 0x08);
 
-    // Buttons/DPAD (Byte 5)
+    // Buttons and D-Pad 
     input_report_key(controller->inputDev, BTN_TL, buff[5] & 0x10);
     input_report_key(controller->inputDev, BTN_TR, buff[5] & 0x20);
     input_report_key(controller->inputDev, BTN_THUMBL, buff[5] & 0x40);
@@ -324,12 +326,8 @@ void controller_irq_callback(struct urb *urb)
     input_report_key(controller->inputDev, BTN_DPAD_LEFT, buff[5] & 0x04);
     input_report_key(controller->inputDev, BTN_DPAD_RIGHT, buff[5] & 0x08);
 
-    /* --- 4. Analog Axes --- */
-    // Triggers (Bytes 6-9) - 10-bit values (0-1023)
-    input_report_abs(controller->inputDev, ABS_Z, (__u16)(buff[6] | (buff[7] << 8)));
-    input_report_abs(controller->inputDev, ABS_RZ, (__u16)(buff[8] | (buff[9] << 8)));
 
-    // Sticks (Bytes 10-17) - 16-bit signed values
+    // Joysticks
     input_report_abs(controller->inputDev, ABS_X,(__s16)(buff[10] | (buff[11] << 8)));
     input_report_abs(controller->inputDev, ABS_Y, -(__s16)(buff[12] | (buff[13] << 8)));
     input_report_abs(controller->inputDev, ABS_RX, (__s16)(buff[14] | (buff[15] << 8)));
@@ -342,7 +340,7 @@ void controller_irq_callback(struct urb *urb)
 
     controller->prev_b4 = buff[4];
     controller->prev_b5 = buff[5];
-
+//Resubmit so that keep getting data
 resubmit:
     status = usb_submit_urb(urb, GFP_ATOMIC);
     if (status)
