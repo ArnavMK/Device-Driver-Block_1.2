@@ -4,7 +4,7 @@
 #include <linux/string.h>
 #include "gamepad.h"
 
-
+// handles stat requests and hardware resets
 long gamepad_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
     switch (cmd) {
@@ -32,4 +32,5 @@ long gamepad_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             return -EINVAL;
     }
 }
+// make this visible to admin_ops.c file
 EXPORT_SYMBOL(gamepad_ioctl);
