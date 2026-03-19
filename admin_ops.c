@@ -7,6 +7,10 @@
 #include "gamepad.h"
 
 static unsigned long driver_start_jiffies;
+static const char *button_names[] = {
+	"DPAD_UP", "DPAD_DOWN", "DPAD_LEFT", "DPAD_RIGHT",
+	"START", "SELECT", "LB", "RB", "A", "B", "X", "Y"
+};
 
 // Makes dashboard with stats when /proc/gamepad_stats is read
 static int gamepad_proc_show(struct seq_file *m, void *v)

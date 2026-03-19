@@ -39,10 +39,6 @@ struct gamepad_stats {
 	int is_halted;
 };
 
-static const char *button_names[] = {
-	"DPAD_UP", "DPAD_DOWN", "DPAD_LEFT", "DPAD_RIGHT",
-	"START", "SELECT", "LB", "RB", "A", "B", "X", "Y"
-};
 
 extern wait_queue_head_t wq;
 
