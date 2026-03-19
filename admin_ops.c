@@ -8,13 +8,15 @@
 
 static unsigned long driver_start_jiffies;
 
-
+// Makes dashboard with stats when /proc/gamepad_stats is read
 static int gamepad_proc_show(struct seq_file *m, void *v)
 {
     struct gamepad_stats stats;
+	//Calculate uptime
     unsigned long uptime_sec = (jiffies - driver_start_jiffies) / HZ;
 	int i;
 
+	//Get current data from main driver
     gamepad_ioctl(NULL, GAMEPAD_GET_STATS, (unsigned long)&stats);
 
     seq_printf(m, "=== Xbox Driver Admin Dashboard ===\n");
@@ -42,6 +44,7 @@ static int gamepad_proc_show(struct seq_file *m, void *v)
     return 0;
 }
 
+// handles user input
 static ssize_t gamepad_proc_write(struct file *file, const char __user *ubuf, size_t count, loff_t *ppos)
 {
     char buf[16];
@@ -76,6 +79,7 @@ static const struct proc_ops admin_proc_ops = {
     .proc_release = single_release,
 };
 
+// Creates the entry in the /proc filesystem
 int admin_init(void)
 {
     driver_start_jiffies = jiffies;
@@ -90,6 +94,7 @@ int admin_init(void)
 }
 EXPORT_SYMBOL(admin_init);
 
+// Clean up the module by removing the entry from /proc when the driver is unloaded
 void admin_exit(void)
 {
     remove_proc_entry("gamepad_stats", NULL);
