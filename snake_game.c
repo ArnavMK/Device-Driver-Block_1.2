@@ -57,6 +57,8 @@ static Direction current_dir = DIR_RIGHT;
 static int food_x = 10;
 static int food_y = 10;
 
+static int game_over_choice = 0; // 0 = no choice, 1 = restart, 2 = quit
+
 static volatile sig_atomic_t running = 1;
 static pthread_mutex_t dir_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -203,6 +205,10 @@ static void update_direction_from_button(unsigned char code)
         current_dir = DIR_LEFT;
     } else if (code == GAMEPAD_BTN_DPAD_RIGHT && current_dir != DIR_LEFT) {
         current_dir = DIR_RIGHT;
+    } else if (code == GAMEPAD_BTN_A) {
+        game_over_choice = 1;
+    } else if (code == GAMEPAD_BTN_B) {
+        game_over_choice = 2;
     }
 
     pthread_mutex_unlock(&dir_mutex);
@@ -258,18 +264,33 @@ int main(void)
     }
 
     while (running) {
-        if (step_snake() < 0) {
-            clear_screen();
-            printf("Game Over!\n");
-            printf("Snake length: %d\n", snake_len);
-            printf("Press Ctrl+C to exit.\n");
-            break;
+        place_initial_snake();
+        spawn_food();
+        game_over_choice = 0;
+
+        while (running) {
+            if (step_snake() < 0) {
+                clear_screen();
+                printf("Game Over!\n");
+                printf("Snake length: %d\n", snake_len);
+                printf("Press A to play again or B to quit.\n");
+                break;
+            }
+            draw_board();
+            usleep(TICK_USEC);
         }
-        draw_board();
-        usleep(TICK_USEC);
+
+        if (!running) break;
+
+        while (running && game_over_choice == 0) {
+            usleep(100000);
+        }
+
+        if (game_over_choice == 2) running = 0;
     }
 
     running = 0;
+    pthread_cancel(controller_thread);
     pthread_join(controller_thread, NULL);
 
     return 0;
