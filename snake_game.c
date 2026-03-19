@@ -23,7 +23,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "gamepad.h"
+#include "gamepad_shared.h"
 
 // Path to the character device created by the driver.
 // Change this if your node name is different.
@@ -75,11 +75,11 @@ static void clear_screen(void)
 static void place_initial_snake(void)
 {
     snake_len = 3;
-    snake[0].x = BOARD_WIDTH / 2 - 1;
+    snake[0].x = BOARD_WIDTH / 2 + 1;
     snake[0].y = BOARD_HEIGHT / 2;
     snake[1].x = BOARD_WIDTH / 2;
     snake[1].y = BOARD_HEIGHT / 2;
-    snake[2].x = BOARD_WIDTH / 2 + 1;
+    snake[2].x = BOARD_WIDTH / 2 - 1;
     snake[2].y = BOARD_HEIGHT / 2;
     current_dir = DIR_RIGHT;
 }
