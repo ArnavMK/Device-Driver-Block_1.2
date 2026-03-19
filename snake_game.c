@@ -1,18 +1,4 @@
-// Simple terminal Snake game controlled by the custom Xbox controller driver.
-//
-// Assumptions about the kernel module:
-// - It registers a character device called "gamepadDriver"
-//   so the node is available as /dev/gamepadDriver (adjust DEVICE_PATH if different).
-// - Each successful read(fd, &byte, 1) returns a single "button id" byte
-//   matching the GAMEPAD_BTN_* values defined in gamepad.h.
-//
-// Build (on Linux, in this folder):
-//   gcc -pthread snake_game.c -o snake_game
-//
-// Run (may need sudo depending on device permissions):
-//   ./snake_game
-//
-// Quit the game by pressing Ctrl+C in the terminal.
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,15 +11,14 @@
 
 #include "gamepad.h"
 
-// Path to the character device created by the driver.
-// Change this if your node name is different.
+// path to the character device created by the driver.
 #define DEVICE_PATH "/dev/" DEVICE_NAME
 
-// Game board size
+// game boundry size
 #define BOARD_WIDTH  20
 #define BOARD_HEIGHT 20
 
-// Game tick in microseconds (snake speed)
+// game clock 
 #define TICK_USEC 150000
 
 typedef enum {
@@ -48,7 +33,6 @@ typedef struct {
     int y;
 } Point;
 
-// Maximum snake length (fits inside board)
 #define MAX_SNAKE_LEN (BOARD_WIDTH * BOARD_HEIGHT)
 
 static Point snake[MAX_SNAKE_LEN];
@@ -56,6 +40,8 @@ static int   snake_len = 3;
 static Direction current_dir = DIR_RIGHT;
 static int food_x = 10;
 static int food_y = 10;
+
+static int game_over_choice = 0;
 
 static volatile sig_atomic_t running = 1;
 static pthread_mutex_t dir_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -66,7 +52,7 @@ static void handle_sigint(int sig)
     running = 0;
 }
 
-// Clear the terminal and move cursor to top-left
+// refreshes the scren
 static void clear_screen(void)
 {
     printf("\033[2J\033[H");
@@ -84,9 +70,9 @@ static void place_initial_snake(void)
     current_dir = DIR_RIGHT;
 }
 
+// random food spawingin
 static void spawn_food(void)
 {
-    // Very simple "random" placement using rand(); avoids placing on snake body.
     while (1) {
         int ok = 1;
         food_x = rand() % BOARD_WIDTH;
@@ -101,18 +87,19 @@ static void spawn_food(void)
     }
 }
 
+// draws the game board
 static void draw_board(void)
 {
     char board[BOARD_HEIGHT][BOARD_WIDTH];
     memset(board, ' ', sizeof(board));
 
-    // Draw food
+    // draw food
     if (food_x >= 0 && food_x < BOARD_WIDTH &&
         food_y >= 0 && food_y < BOARD_HEIGHT) {
         board[food_y][food_x] = '*';
     }
 
-    // Draw snake
+    // draw snake
     for (int i = 0; i < snake_len; ++i) {
         int x = snake[i].x;
         int y = snake[i].y;
@@ -125,7 +112,7 @@ static void draw_board(void)
     printf("Snake (Xbox driver controlled)\n");
     printf("Use D-Pad to steer. Ctrl+C to quit.\n\n");
 
-    // Top border
+    // top border
     for (int x = 0; x < BOARD_WIDTH + 2; ++x) printf("#");
     printf("\n");
 
@@ -137,7 +124,7 @@ static void draw_board(void)
         printf("#\n");
     }
 
-    // Bottom border
+    // bottom border
     for (int x = 0; x < BOARD_WIDTH + 2; ++x) printf("#");
     printf("\n");
     fflush(stdout);
@@ -145,7 +132,7 @@ static void draw_board(void)
 
 static int step_snake(void)
 {
-    // Compute new head position
+    // compute new head position
     Point head = snake[0];
 
     pthread_mutex_lock(&dir_mutex);
@@ -159,26 +146,26 @@ static int step_snake(void)
         case DIR_RIGHT: head.x += 1; break;
     }
 
-    // Check wall collision
+    // check wall collision
     if (head.x < 0 || head.x >= BOARD_WIDTH ||
         head.y < 0 || head.y >= BOARD_HEIGHT) {
-        return -1; // Game over
+        return -1; // game over
     }
 
-    // Check self collision
+    // check self collision
     for (int i = 0; i < snake_len; ++i) {
         if (snake[i].x == head.x && snake[i].y == head.y) {
-            return -1; // Game over
+            return -1; // game over
         }
     }
 
-    // Move body
+    // move body
     for (int i = snake_len - 1; i > 0; --i) {
         snake[i] = snake[i - 1];
     }
     snake[0] = head;
 
-    // Check food
+    // check food
     if (head.x == food_x && head.y == food_y) {
         if (snake_len < MAX_SNAKE_LEN) {
             snake[snake_len] = snake[snake_len - 1];
@@ -190,7 +177,7 @@ static int step_snake(void)
     return 0;
 }
 
-// Change direction based on a GAMEPAD button code.
+// change direction based on a GAMEPAD button code.
 static void update_direction_from_button(unsigned char code)
 {
     pthread_mutex_lock(&dir_mutex);

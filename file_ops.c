@@ -6,23 +6,29 @@
 #include "circular_buffer.h"
 #include "gamepad.h"
 
-// ---------------------------------------------------------
-// 1. Global Variables & Synchronization Tools
-// ---------------------------------------------------------
+// global variables & synchronization tools
+int dev_open(struct inode *inodep, struct file *filep);
+int dev_release(struct inode *inodep, struct file *filep);
+ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset);
+ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset);
 
-static struct cbuffer my_cbuffer; 
-DECLARE_WAIT_QUEUE_HEAD(wq);       // The waiting room for sleeping threads
-DEFINE_MUTEX(cbuffer_lock);        // The lock to protect our buffer
+struct file_operations fops = {
+    .owner = THIS_MODULE,
+    .open = dev_open,
+    .release = dev_release,
+    .read = dev_read,
+    .write = dev_write,
+    .unlocked_ioctl = gamepad_ioctl,
+};
 
-// ---------------------------------------------------------
-// 2. Open & Release Functions
-// ---------------------------------------------------------
+DECLARE_WAIT_QUEUE_HEAD(wq);
 
-ssize_t dev_open(struct inode *inodep, struct file *filep) {
+// open & release functions
+int dev_open(struct inode *inodep, struct file *filep) {
     printk(KERN_INFO "Gamepad: Device opened\n");
-    // Initialize the buffer the first time the device is opened
-    cbuffer_init(&my_cbuffer); 
-    return 0; // 0 means success
+
+    gamepad_buffer_init(&myDeviceBuffer); 
+    return 0;
 }
 
 int dev_release(struct inode *inodep, struct file *filep) {
@@ -30,80 +36,55 @@ int dev_release(struct inode *inodep, struct file *filep) {
     return 0;
 }
 
-// ---------------------------------------------------------
-// 3. The READ Function (Game asks for input)
-// ---------------------------------------------------------
-
+// read function
 ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset) {
     char data_to_send;
 
-    // STEP 1: Block (sleep) if the buffer is empty.
-    // The process will wait here until dev_write() wakes it up.
-    if (wait_event_interruptible(wq, !cbuffer_is_empty(&my_cbuffer))) {
-        return -ERESTARTSYS; // Safely handle if the user hits Ctrl+C while sleeping
+    if (wait_event_interruptible(wq, !gamepad_buffer_is_empty(&myDeviceBuffer))) {
+        return -ERESTARTSYS;
     }
 
-    // STEP 2: Grab the lock! We are about to touch the shared buffer.
-    if (mutex_lock_interruptible(&cbuffer_lock)) {
-        return -ERESTARTSYS; 
-    }
+    spin_lock_bh(&myDeviceBuffer.lock);
 
-    // Double check it's still not empty (another thread might have grabbed the data first!)
-    if (cbuffer_is_empty(&my_cbuffer)) {
-        mutex_unlock(&cbuffer_lock);
+    if (gamepad_buffer_is_empty(&myDeviceBuffer)) {
+        spin_unlock_bh(&myDeviceBuffer.lock);
         return 0; 
     }
 
-    // STEP 3: Pop the data using your helper
-    data_to_send = cbuffer_pop(&my_cbuffer);
+    data_to_send = gamepad_buffer_pop(&myDeviceBuffer);
 
-    // STEP 4: We are done with the buffer, unlock it for others.
-    mutex_unlock(&cbuffer_lock);
+    spin_unlock_bh(&myDeviceBuffer.lock);
 
-    // STEP 5: Send the data safely to the User Space App
     if (copy_to_user(buffer, &data_to_send, 1) != 0) {
-        return -EFAULT; // Failed to send data
+        return -EFAULT;
     }
     
-    // STEP 6: Wake up any writers that were stuck waiting for space
     wake_up_interruptible(&wq);
 
-    return 1; // We successfully read 1 byte
+    return 1;
 }
 
-// ---------------------------------------------------------
-// 4. The WRITE Function (Hardware sends input)
-// ---------------------------------------------------------
-
+// write function
 ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset) {
     char data_received;
 
-    // STEP 1: Get the data safely from User Space first
     if (copy_from_user(&data_received, buffer, 1) != 0) {
         return -EFAULT; 
     }
 
-    // STEP 2: Block (sleep) if the buffer is completely full.
-    if (wait_event_interruptible(wq, !cbuffer_is_full(&my_cbuffer))) {
+    if (wait_event_interruptible(wq, !gamepad_buffer_is_full(&myDeviceBuffer))) {
         return -ERESTARTSYS;
     }
 
-    // STEP 3: Grab the lock! We are about to modify the buffer.
-    if (mutex_lock_interruptible(&cbuffer_lock)) {
-        return -ERESTARTSYS;
+    spin_lock_bh(&myDeviceBuffer.lock);
+
+    if (!gamepad_buffer_is_full(&myDeviceBuffer)) {
+        gamepad_buffer_push(&myDeviceBuffer, data_received);
     }
 
-    // STEP 4: Push the data using your helper
-    // We only push if space exists (protecting against race conditions)
-    if (!cbuffer_is_full(&my_cbuffer)) {
-        cbuffer_push(&my_cbuffer, data_received);
-    }
+    spin_unlock_bh(&myDeviceBuffer.lock);
 
-    // STEP 5: Unlock the buffer
-    mutex_unlock(&cbuffer_lock);
-
-    // STEP 6: Wake up any readers (games) waiting for new button presses
     wake_up_interruptible(&wq);
 
-    return 1; // We successfully wrote 1 byte
+    return 1;
 }
