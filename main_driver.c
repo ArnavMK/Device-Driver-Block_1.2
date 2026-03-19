@@ -220,8 +220,9 @@ int controller_probe(struct usb_interface *usbInterface, const struct usb_device
             NULL, 1000);
         kfree(gip_buf);
     }
-
+    spin_lock(&myDeviceBuffer.lock);
     myDeviceStats.is_connected = 1;
+    spin_unlock(&myDeviceBuffer.lock);
     printk(KERN_INFO "Controller Connected.\n");
     return 0;
 }
@@ -240,7 +241,9 @@ void controller_disconnect(struct usb_interface *usbInterface)
         input_unregister_device(controller->inputDev);
         kfree(controller);
     }
+    spin_lock(&myDeviceBuffer.lock);
     myDeviceStats.is_connected = 0;
+    spin_unlock(&myDeviceBuffer.lock);
     printk(KERN_INFO "Controller Disconnected.\n");
 }
 
@@ -267,6 +270,7 @@ void controller_irq_callback(struct urb *urb)
     clicks_b5 = buff[5] & ~controller->prev_b5;
 
     //Buttons
+    spin_lock(&myDeviceBuffer.lock);
     if (clicks_b4 & 0x04) myDeviceStats.individual_counts[4]++;  // Start
     if (clicks_b4 & 0x08) myDeviceStats.individual_counts[5]++;  // Select
     if (clicks_b4 & 0x10) myDeviceStats.individual_counts[8]++;  // A
@@ -300,14 +304,15 @@ void controller_irq_callback(struct urb *urb)
         else if (clicks_b5 & 0x08) btn_id = GAMEPAD_BTN_DPAD_RIGHT;
 
         if (btn_id) {
-            spin_lock(&myDeviceBuffer.lock);
-            if (!gamepad_buffer_is_full(&myDeviceBuffer))
+            if (!gamepad_buffer_is_full(&myDeviceBuffer)){
                 gamepad_buffer_push(&myDeviceBuffer, btn_id);
-            spin_unlock(&myDeviceBuffer.lock);
-            wake_up_interruptible(&wq);
+            }
         }
     }
-
+    spin_unlock(&myDeviceBuffer.lock);
+    if(btn_id) {
+        wake_up_interruptible(&wq);
+    }
     // Buttons 
     input_report_key(controller->inputDev, BTN_A, buff[4] & 0x10);
     input_report_key(controller->inputDev, BTN_B, buff[4] & 0x20);
@@ -334,9 +339,10 @@ void controller_irq_callback(struct urb *urb)
     input_report_abs(controller->inputDev, ABS_RY, -(__s16)(buff[16] | (buff[17] << 8)));
 
     input_sync(controller->inputDev);
-
+    spin_lock(&myDeviceBuffer.lock);
     myDeviceStats.packets_received++;
     myDeviceStats.is_connected = 1;
+    spin_unlock(&myDeviceBuffer.lock);
 
     controller->prev_b4 = buff[4];
     controller->prev_b5 = buff[5];
